@@ -1,0 +1,70 @@
+
+*****************************************************************************************
+
+RELEASE V4.0, June 28 2015
+
+*****************************************************************************************
+RELEASE V3.0, March 25 2014
+ - change to LGPL license
+
+ - support of SRILM and KENLM (default)
+   for convenience, KENLM is included in the tar and will be automatically compiled
+
+ - new command line interface with a configuration file for more flexible specification of network architectures
+   all the parameters can be specified in this configuration file
+
+ - more options to initialize neural networks (gives improved results for deep networks)
+   best results are usually obtained with "fanio-init-weights=1.0"
+
+ - 10-fold speed-up of resampling in very large corpora
+
+ - speed-up of GPU code, multi GPU support for cstm_train
+
+ - continuous space translation models
+
+ - the display of the training perplexity was wrong (we need to divide by the
+   number of examples processed by the CSLM not all examples). Since usually
+   not all examples are processed by the CSLM, we divide by less examples and the
+   displayed numbers are higher than before. The trained network is still the
+   same, and the displayed validation perplexities are unchanged.
+
+ - the learning rate is now scaled by the square root of the batch size. This prevented the neural
+   network from converging correctly for batch sizes larger than 128.  You must
+   multiply you current learning rate by the square root of the  batch size in order to achieve the
+   same results than before, i.e. the default value is now 0.64 instead of 0.005
+
+ - the binary format of ngrams was changed in order to support very large corpora.
+   (unsigned long for the counters instead of int)
+
+ - the format for the networks was changed to support training on large corpora
+   (unsigned long for the counters instead of int)
+   The old version was limited to corpora of 2G words.
+
+ - Word lists are now specified in the data files
+
+ - there was a bug when reading word lists: the last entry was included twice.
+   this can have an impact on the words which are in the short list and networks trained
+   with cslm_train V2 may be not compatible.
+   If you need compatibility with the old code, you can uncomment the code in WordList.cpp, starting line 203
+
+ - initial support for data with multiple factors
+
+ - new tool to rescore speech lattices
+   Part of this software is based on code from the Spynx project. Please see the source code
+   for the corresponding licence.
+   All questions on these tools should be send to Paul.Deleglise@lium.univ-lemans.fr.
+
+
+*****************************************************************************************
+RELEASE V2.0, Jun 03 2012
+ - full support for short lists during training was added
+ - fast rescoring of nbest list with very efficient cache algorithm
+ - various speed improvements
+ - support for graphical processing units from Nvidia
+ - this version was successfully used to build CSLMs for large tasks like NIST OpenMT
+                   
+*****************************************************************************************
+RELEASE V1.0, Jan 26 2010
+ - Training and n-best list rescoring is working
+ - Short-lists and interpolation of multiple networks is not yet implemented
+

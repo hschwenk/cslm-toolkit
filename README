@@ -1,0 +1,164 @@
+
+This software implements continuous space language and translation models model
+as described in detail in [1,2,3,4]. This software is distributed under the the
+GNU lesser public license version 3.  When using this software, please cite
+those references.
+
+This software includes several tools to process lattices in HTK format. Part
+of it is based on code from the Spynx project. Please see the source code
+for the corresponding licence.
+
+Build instructions:
+-------------------
+
+This software is developed in Linux (Fedora Core 20) using g++. Other
+LINUX/UNIX variants should also work. Currently, only a simple makefile is
+provided.
+
+The code can be run either on CPUs or Nvidia GPUs:
+ make           compile to run the code on a CPU (default)
+                (change the variable variable MKL_ROOT for your configuration
+		 and eventually OPT_FLAGS for your architecture
+                Please check the comments in the Makefile to compile with Atlas or another Blas
+ make CUDA=1    compile to run the code on Nvidia GPUs
+                (change the variable CUDA_ROOT for your configuration)
+
+You can also choose the LM toolkit to link with
+ make                   KENLM toolkit (default, included in the package)
+ make BOLM_TOOL=SRILM   SRILM toolkit, you need to download and install the toolkit
+
+In addition, you can include support for continuous space TRANSLATION models. This is
+optionnal since a complete Moses installation is needed.
+make CSTM=1     also creates cstm_train and cstm_eval
+                include support for rescoring translation models in the nbest tool
+                (change the variable MOSES_INC for your configuration)
+
+List of all the tools:
+ cslm_train     train an CSLM
+ cslm_eval      evaluate perplexity of an CSLM
+ text2bin       convert text files to the binary format needed by cslm_train
+
+ cstm_train     train a continuous space translation model (with CSTM=1)
+ cstm_eval      evaluate a continuous space translation model (with CSTM=1)
+ extract2bin    convert Moses extract files to the binary format needed by cstm_train
+
+ nbest          nbest processing and rescoring tool (Moses format)
+ cslm_rescsore  simple tool to calculate CSLM probabilities for a list of n-grams
+
+ mach_dump	tool to extract individual layers from a large network
+		those can be used to initialize layers of other networks with "init-from-file=layer.mach"
+ dumpEmbeddings	extract the embeddigns from a network
+
+ nn_train       generic neural network training
+ nn_info        display information on a neural network
+
+Using optimized BLAS libraries is very important to obtain fast training of the
+neural networks and rescoring of n-best lists. The toolkit works with default
+implementations, e.g. with the library available in many LINUX distributions
+(e.g. "yum install blas" in Fedora). However, considerable faster processing can be obtained
+with a library that takes advantage of the specific CPU architecture, e.g. SSE
+instruction set, multithreading, etc. The CSLM toolkit was successfully tested
+with Intel's MKL libraries and the freely available ATLAS (normal version
+liblas, as well as the multi-threaded libptatlas). The boost libraries also
+include BLAS functions which should work, but there were not tested. It may be
+necessary to change the name of the functions in the file Blas.h for linking
+(there are called sgemm, or sgemm_, etc). Please note that the CSLM toolkit
+uses the FORTRAN BLAS functions, i.e. using column-major matrices. You should
+not link with C versions of the BLAS library (which probably use row-major
+matrix storage) !
+
+
+Prerequisites:
+ - working C++ compiler (tested with g++ 4.8.3)
+ - installed KenLM (included in the package) or SRILM toolkit (tested with version 1.7.1)
+ - installed BLAS libraries for fast matrix operations
+   (tested with Intel's MKL 11.1 Update 2
+    and CUDA 6.5.14 on GTX580, GTX690, Tesla M2090, K20 and K40)
+ - installed boost libraries (tested with version 1.54.0-10)
+ - installed Moses toolkit (only needed with CSTM=1)
+
+ - We have also tested the library on Fedora Core 21, CUDA 7.0 and an GTX980 GPU
+
+Version history
+---------------
+
+Jun 28 2015 V4.0
+ - bug fixes:
+    - deterministic sorting of the wordlist for short lists
+    - corrected race condition in MachTab on GPU leading to concurrent updates
+      now the results are indentical to CPU version, but slight slower
+ - neural network architectures and training:
+    - added classes at the output layer
+    - introduced learning rate schemes
+    - layer-specific learning rates
+    - support for auxillary data at the network input
+    - flexible sharing of parameters
+    - simplified network configuration
+ - refactorisation of GPU code
+    - use of CUDA streams
+    - better GPU kernels for activation functions
+    - more options to select CUDA devices, automatic selection with "-N"
+    - several missing functions are now available on GPU
+ - data handling:
+    - sentence scores
+    - cross-sentence n-grams
+    - arbitrary target position (still experimental)
+    - fast loading of phrases
+ - new tools
+    - dump embeddings
+ - added more documentation
+ - improved tutoriel
+ 
+
+Mar 25 2014  V3.0
+ - LGPL licene
+ - support of SRILM and KENLM (default)
+   for convenience, KENLM is included in the tar and will be automatically compiled
+ - new command line interface with configuration files for more flexible specification of network architectures
+ - more options to initialize neural networks (gives improved results for deep networks)
+ - new binary format of data to support more than 2G of examples
+ - 10-fold speed-up of resampling in very large corpora
+ - speed-up of GPU code, multi GPU support
+ - continuous space translation models
+ - new tool to rescore speech lattices
+ - initial support for data with multiple factors
+
+Jun 03 2012  V2.0
+ - full support for short lists during training was added
+ - fast rescoring of nbest list with very efficient cache algorithm
+ - various speed improvements
+ - support for graphical processing units from Nvidia
+ - this version was successfully used to build CSLMs for large tasks like NIST OpenMT
+
+Jan 26 2010  V1.0
+ - Training and n-best list rescoring is working
+ - Short-lists and interpolation of multiple networks is not yet implemented
+
+It is recommended that you join the Google group "continuos-space-language-model-toolkit"
+to be informed of bug corrections, updates and follow other discussions on the tool.
+
+Contributors:
+-------------
+N. Coetmeur                     configuration files, KENLM support, many improvements and fixes 
+W. Aransa			auxillary data, various fixes
+L. Barrault			network configuration, in particular parameter sharing
+F. Bastien                      improved GPU code
+F. Bougares			sentences scores, data handling
+O. Caglayan			improvements in CSTM code
+P. Lambert			class output layers, various improvements
+P. Deleglise and Y. Estève      tool to rescore HTK-style lattices
+
+
+References:
+-----------
+[1] Holger Schwenk, Continuous Space Language Models; in Computer Speech and
+    Language, volume 21, pages 492-518, 2007.
+[2] Holger Schwenk, Continuous Space Language Models For Statistical Machine
+    Translation; The Prague Bulletin of Mathematical Linguistics, number 83,
+    pages 137-146, 2010.
+[3] Holger Schwenk, Anthony Rousseau and Mohammed Attik; Large, Pruned or
+    Continuous Space Language Models on a GPU for Statistical Machine Translation,
+    in NAACL workshop on the Future of Language Modeling, pages, 2012.
+[4] Holger Schwenk,
+    Continuous Space Translation Models for Phrase-Based Statistical Machine Translation,
+    in Coling, pages 1071-1080, 2012.

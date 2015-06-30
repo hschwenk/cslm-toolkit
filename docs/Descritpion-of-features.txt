@@ -1,0 +1,200 @@
+
+Overlook of documented features;
+
+Data handling
+ - sentence scores
+ - n-grams spanning cross sentence boundaries
+ - target position of n-grams
+
+Neural network training
+ - learning rate schedules
+ - 
+
+#######################################################################
+
+n-grams spanning cross sentence boundaries
+
+By default, each sentence starts with the bigram "<s> w1" and the following n-grams
+use additional context up to the maximal size. The last n-gram is  "... wn-1 wn <\s>".
+In the following sentence, the n-grams context is reset and we start again with a bigram.
+This prevents the use of cross-sentence contexts.
+
+When the optione "BetweenSentContext" is added in the data-file the context is not reset and
+n-grams will span cross sentence boundaries. This usually helps to (slightly) improve perplexity.
+
+Please note that this option should probably not be used when rescoring
+Moses-style n-best lists since the each sentence is handled independently.
+
+##################################### BEGIN ##################################
+
+----------------
+Feature name  --
+----------------
+SentenceScores
+
+
+----------------------------------------------------------------
+Feature description : Data resampling with 'Sentence score'   --
+----------------------------------------------------------------
+
+Data Resampling is implemented by sequentially advancing through the data and
+example is kept if a randomly generated number is lower than the resampling
+coefficient.  By default the same resampling coefficient is used for all the
+sentences of each training corpus. In order to change this behavior we
+introduce the SentenceScores option which take into account sentences scores
+(similarity to dev data for example). This feature could allow finer Data
+resampling.
+
+
+In order to use this option you should :
+
+1)  Prepare a score files (one score per line) for each DataNgramBin file.  The
+score file should have the same name and location as the data file with an
+extension of your choice (mentioned on the df file).
+
+2) add this line to the df file :
+     SentenceScores 1 scores 10
+
+   Where :
+   SentenceScores is the option name (fixed)
+   1 is the number of scores on the file (curently only one score is supported)
+   scores is the file extention (depends of your score file extension)
+   10 is the value of exponential growth function (v value of the growth Exp)
+
+
+The Sentence score resampling is implemented using exponential growth function
+updated during the training (using epoch number) using this formula :
+
+    resamplingScore = Sentence Score * exp(-10/epoch_number)
+
+With this, we give chance to low scored sentences for first runs and with training progress we limit the training examples to hight scored examples.
+
+------------------------------------------------
+Example of df file with SentenceScores feature :
+------------------------------------------------
+	DataDescr 1
+
+	Preload
+	ResamplMode 0
+	ResamplSeed 12345678
+	ShuffleMode 10
+	SentenceScores 1 scores 6
+
+
+	PathPrefix ../../data/cslm.en-fr.tokmos
+	WordList news_2013u_woSe_pc11ntst12_13=lmfr.wlwmtenfr2c.wlist
+	DataNgramBin dev08_11.wlwmtenfr2c.btxt  1.0000 28 27 0
+	DataNgramBin nc9_pc50ntst12_13=lmfr.wlwmtenfr2c.btxt  0.0678 28 27 0
+	DataNgramBin crawl_pc36ntst12_13=lmfr.wlwmtenfr2c.btxt 0.3365 28 27 0
+
+
+
+With this df file I use two scores file
+- nc9_pc50ntst12_13=lmfr.wlwmtenfr2c.scores
+- crawl_pc36ntst12_13=lmfr.wlwmtenfr2c.scores
+
+Each score file contain the same number of lines as the data file.
+
+-----------
+Results  --
+-----------
+
+I applied this option to WMT task and I got a ppx reduction using sentence score calculated by XenC. 
+I got 83.94 with SentScore option compared to 85.73 as baseline.
+
+
+
+For more details about this feature please email fethi.bougares@lium.univ-lemans.fr
+
+##################################### END ##################################
+
+
+
+##################################### BEGIN ################################
+
+----------------
+Feature name  --
+----------------
+Auxiliary Data
+
+
+----------------------------------------------------------------
+Feature description : Sentence Level Auxiliary Data           --
+----------------------------------------------------------------
+How to use this option :
+---------------------------
+
+In order to use this option you should :
+
+1)  Prepare Auxiliary data files (each line should contain one or more Auxiliary information values depends on the dimension of the auxiliary data you want to use) for each DataNgramBin file.
+The score file should have the same name and location as data file with an extension of your choice (mentioned on the df file).
+Make sure that your Auxiliary Data have the same number of lines as the associated Data file.
+
+2) Activate using the Auxiliary data in df file:
+
+For example adding same line as the following one: 
+AuxiliaryData 32 .vnorm32
+
+where "32" is your auxiliary dimension, this should equal to number of values in each line in your auxiliary file, ".vnorm32" is the extension of your auxiliary file name 
+
+3) In your machine conf file, you have to add a machine at the end of the machines in your Parallel machine (since Auxiliary data will be always at the end of your input otherwise it will not work)
+
+Example:
+--------
+
+### before using Auxiliary Data ###
+-----------------------------------
+[machine]
+   Sequential =
+    Parallel =
+     Tab = DIM1 x DIM2  share-id=1
+     Tab = DIM1 x DIM2  share-id=1
+     Tab = DIM1 x DIM2  share-id=1
+     Tab = DIM1 x DIM2  share-id=1
+     Tab = DIM1 x DIM2  share-id=1
+    #End
+    Tanh = DIM3xDIM4           fanio-init-weights=1.0 random-init-bias=0.0
+    Tanh = DIM4xDIM5           fanio-init-weights=1.0 random-init-bias=0.0
+    Softmax = DIM5xDIM9        fanio-init-weights=1.0 random-init-bias=0.0
+   #End
+
+### After using Auxiliary Data Adding using Copy Machine ###
+------------------------------------------------------------
+[machine]
+   Sequential =
+    Parallel =
+     Tab = DIM1 x DIM2  share-id=1
+     Tab = DIM1 x DIM2  share-id=1
+     Tab = DIM1 x DIM2  share-id=1
+     Copy = 2 x 2  #This is used for Auxiliary data with two values per line
+    #End
+    Tanh = DIM3xDIM4           fanio-init-weights=1.0 random-init-bias=0.0
+    Tanh = DIM4xDIM5           fanio-init-weights=1.0 random-init-bias=0.0
+    Softmax = DIM5xDIM9        fanio-init-weights=1.0 random-init-bias=0.0
+   #End
+
+### After using Auxiliary Data Adding using MachTab Machine ###
+### Note: using MachTab with input dim=200 is virtual and will need only 1 dimension of Auxiliary Data as index ###
+-------------------------------------------------------------------------------------------------------------------
+[machine]
+   Sequential =
+    Parallel =
+     Tab = DIM1 x DIM2  share-id=1
+     Tab = DIM1 x DIM2  share-id=1
+     Tab = DIM1 x DIM2  share-id=1
+     Tab = 200 x 64 #This is used for Auxiliary data with one values per line (used as index), projection has 64 dimension
+    #End
+    Tanh = DIM3xDIM4           fanio-init-weights=1.0 random-init-bias=0.0
+    Tanh = DIM4xDIM5           fanio-init-weights=1.0 random-init-bias=0.0
+    Softmax = DIM5xDIM9        fanio-init-weights=1.0 random-init-bias=0.0
+   #End
+
+For more details about this feature please email walid.aransa at lium.univ-lemans.fr
+##################################### END ##################################
+
+
+##################################### BEGIN ################################
+Add your feature description here ....
+
+##################################### END ##################################
+

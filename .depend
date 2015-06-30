@@ -1,0 +1,103 @@
+
+Tools.o: Tools.cpp Tools.h
+Toolsgz.o: Toolsgz.cpp Tools.h Toolsgz.h
+MachConfig.o: MachConfig.cpp MachAvr.h MachCombined.h MachMulti.h Mach.h \
+ Tools.h Blas.h Timer.h MachConfig.h MachLin.h Shareable.h MachTab.h \
+ MachJoin.h MachLinRectif.h MachPar.h MachSeq.h MachSig.h MachSoftmax.h \
+ MachSoftmaxStable.h MachSoftmaxClass.h WordList.h MachSplit.h \
+ MachSplit1.h MachTanh.h MachCopy.h
+Mach.o: Mach.cpp Tools.h Mach.h Blas.h Timer.h MachCopy.h MachTab.h \
+ Shareable.h MachLin.h MachSig.h MachTanh.h MachSoftmax.h \
+ MachSoftmaxStable.h MachSoftmaxClass.h WordList.h MachLinRectif.h \
+ MachSeq.h MachMulti.h MachPar.h MachSplit.h MachSplit1.h MachJoin.h
+MachTab.o: MachTab.cpp Tools.h MachTab.h Mach.h Blas.h Timer.h \
+ Shareable.h
+MachCopy.o: MachCopy.cpp Tools.h MachCopy.h Mach.h Blas.h Timer.h
+MachLin.o: MachLin.cpp Tools.h MachLin.h Mach.h Blas.h Timer.h \
+ Shareable.h
+MachSig.o: MachSig.cpp Tools.h MachSig.h MachLin.h Mach.h Blas.h Timer.h \
+ Shareable.h
+MachTanh.o: MachTanh.cpp Tools.h MachTanh.h MachLin.h Mach.h Blas.h \
+ Timer.h Shareable.h
+MachSoftmax.o: MachSoftmax.cpp Tools.h MachSoftmax.h MachLin.h Mach.h \
+ Blas.h Timer.h Shareable.h
+MachSoftmaxStable.o: MachSoftmaxStable.cpp Tools.h MachSoftmaxStable.h \
+ MachLin.h Mach.h Blas.h Timer.h Shareable.h
+MachLinRectif.o: MachLinRectif.cpp Tools.h MachLinRectif.h MachLin.h \
+ Mach.h Blas.h Timer.h Shareable.h
+MachMulti.o: MachMulti.cpp Tools.h MachMulti.h Mach.h Blas.h Timer.h
+MachSeq.o: MachSeq.cpp Tools.h MachSeq.h MachMulti.h Mach.h Blas.h \
+ Timer.h
+MachPar.o: MachPar.cpp Tools.h MachTab.h Mach.h Blas.h Timer.h \
+ Shareable.h MachPar.h MachMulti.h
+MachSplit.o: MachSplit.cpp Tools.h MachSplit.h MachMulti.h Mach.h Blas.h \
+ Timer.h
+MachSplit1.o: MachSplit1.cpp Tools.h MachSplit1.h MachMulti.h Mach.h \
+ Blas.h Timer.h
+MachJoin.o: MachJoin.cpp Tools.h MachJoin.h MachMulti.h Mach.h Blas.h \
+ Timer.h
+Data.o: Data.cpp Tools.h Data.h DataFile.h WordList.h DataAscii.h \
+ DataAsciiClass.h DataMnist.h DataNgramBin.h DataPhraseBin.h
+DataFile.o: DataFile.cpp Tools.h Data.h DataFile.h WordList.h
+DataAscii.o: DataAscii.cpp Tools.h Data.h DataFile.h WordList.h \
+ DataAscii.h
+DataAsciiClass.o: DataAsciiClass.cpp Tools.h Data.h DataFile.h WordList.h \
+ DataAsciiClass.h DataAscii.h
+DataMnist.o: DataMnist.cpp Tools.h Data.h DataFile.h WordList.h \
+ DataMnist.h
+DataNgramBin.o: DataNgramBin.cpp Tools.h Data.h DataFile.h WordList.h \
+ DataNgramBin.h
+DataPhraseBin.o: DataPhraseBin.cpp Tools.h DataPhraseBin.h Data.h \
+ DataFile.h WordList.h
+ErrFct.o: ErrFct.cpp Tools.h ErrFct.h Mach.h Blas.h Timer.h Data.h \
+ DataFile.h WordList.h
+ErrFctMSE.o: ErrFctMSE.cpp Tools.h ErrFctMSE.h ErrFct.h Mach.h Blas.h \
+ Timer.h Data.h DataFile.h WordList.h
+ErrFctMCE.o: ErrFctMCE.cpp Tools.h ErrFctMCE.h ErrFct.h Mach.h Blas.h \
+ Timer.h Data.h DataFile.h WordList.h
+ErrFctCrossEnt.o: ErrFctCrossEnt.cpp Tools.h ErrFctCrossEnt.h ErrFct.h \
+ Mach.h Blas.h Timer.h Data.h DataFile.h WordList.h
+ErrFctSoftmCrossEntNgram.o: ErrFctSoftmCrossEntNgram.cpp Tools.h \
+ ErrFctSoftmCrossEntNgram.h ErrFct.h Mach.h Blas.h Timer.h Data.h \
+ DataFile.h WordList.h
+ErrFctSoftmCrossEntNgramMulti.o: ErrFctSoftmCrossEntNgramMulti.cpp \
+ Tools.h ErrFctSoftmCrossEntNgramMulti.h ErrFct.h Mach.h Blas.h Timer.h \
+ Data.h DataFile.h WordList.h ErrFctSoftmCrossEntNgram.h
+Hypo.o: Hypo.cpp Hypo.h Tools.h Toolsgz.h
+Lrate.o: Lrate.cpp Lrate.h Mach.h Tools.h Blas.h Timer.h
+NbestLM.o: NbestLM.cpp NbestLM.h Hypo.h Tools.h Toolsgz.h
+NbestCSLM.o: NbestCSLM.cpp Hypo.h Tools.h Toolsgz.h NbestCSLM.h NbestLM.h \
+ Mach.h Blas.h Timer.h TrainerNgramSlist.h ErrFct.h Data.h DataFile.h \
+ WordList.h DataNgramBin.h TrainerNgram.h Trainer.h Lrate.h BackoffLm.h
+Trainer.o: Trainer.cpp Tools.h Mach.h Blas.h Timer.h ErrFctMCE.h ErrFct.h \
+ Data.h DataFile.h WordList.h Trainer.h Lrate.h
+TrainerNgram.o: TrainerNgram.cpp Mach.h Tools.h Blas.h Timer.h \
+ TrainerNgram.h ErrFct.h Data.h DataFile.h WordList.h DataNgramBin.h \
+ Trainer.h Lrate.h
+TrainerNgramSlist.o: TrainerNgramSlist.cpp Tools.h Mach.h Blas.h Timer.h \
+ MachTab.h Shareable.h MachPar.h MachMulti.h MachSeq.h \
+ TrainerNgramSlist.h ErrFct.h Data.h DataFile.h WordList.h DataNgramBin.h \
+ TrainerNgram.h Trainer.h Lrate.h BackoffLm.h
+MachSoftmaxClass.o: MachSoftmaxClass.cpp MachSoftmaxClass.h Mach.h \
+ Tools.h Blas.h Timer.h MachLin.h Shareable.h MachSoftmax.h WordList.h \
+ MachSoftmaxStable.h
+ErrFctSoftmClassCrossEntNgram.o: ErrFctSoftmClassCrossEntNgram.cpp \
+ ErrFctSoftmClassCrossEntNgram.h ErrFct.h Tools.h Mach.h Blas.h Timer.h \
+ Data.h DataFile.h WordList.h MachSoftmaxClass.h MachLin.h Shareable.h \
+ MachSoftmax.h
+TrainerNgramClass.o: TrainerNgramClass.cpp TrainerNgramClass.h \
+ TrainerNgram.h Tools.h Mach.h Blas.h Timer.h ErrFct.h Data.h DataFile.h \
+ WordList.h DataNgramBin.h Trainer.h Lrate.h \
+ ErrFctSoftmClassCrossEntNgram.h MachSoftmaxClass.h MachLin.h Shareable.h \
+ MachSoftmax.h
+Shareable.o: Shareable.cpp Shareable.h
+WordList.o: WordList.cpp WordList.h Tools.h
+MachCombined.o: MachCombined.cpp Tools.h MachCombined.h MachMulti.h \
+ Mach.h Blas.h Timer.h
+MachAvr.o: MachAvr.cpp Tools.h MachAvr.h MachCombined.h MachMulti.h \
+ Mach.h Blas.h Timer.h
+Blas.o: Blas.c
+NbestLMKEN.o: NbestLMKEN.cpp NbestLMKEN.h NbestLM.h Hypo.h Tools.h \
+ Toolsgz.h
+BackoffLmKen.o: BackoffLmKen.cpp BackoffLmKen.h BackoffLm.h Tools.h \
+ WordList.h

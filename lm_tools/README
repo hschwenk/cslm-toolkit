@@ -1,0 +1,71 @@
+set of tools that use libraries extracted from Sphinx3 (including LM library in Ng version):
+
+> lm_convert
+converts a language model in dump file (and other way)
+
+> dmp2max
+calculates maximum probabilities of a language model
+takes as input a dump file produced by lm_convert
+creates a dump max file
+
+> max_read
+reads maximum probabilities of a language model
+takes as input a dump file produced by lm_convert and a dump max file produced by dmp2max
+
+> s3astarLRU
+voice recognition program using the A* algorithm
+uses as input a dump file produced by lm_convert and eventually a dump max file produced by dmp2max
+outputs the multiple estimated recognitions
+
+
+[folder tree]
+
+.\include
+contains headers file
+
+.\liblmmax
+contains the source files of the LM Max library
+
+.\libs3decoder
+.\libsphinxbase
+contains the source files of the libraries used by Sphinx3
+
+.\data
+contains some data to test s3astarLRU:
+- control file listing utterances to be processed
+- input word-lattice directory with per-utt files for restricting words searched
+- example of file containing information for cslm
+
+
+[s3astarLRU example]
+
+Example of command line to run s3astarLRU:
+s3astarLRU \
+	-ctl data/sat0000.ctl \
+	-cslm data/cslm \
+	-poidscslm 0.507548004031107 \
+	-dagfudge 0 \
+	-dict data/main_pron_dict \
+	-fdict data/fill_pron_dict \
+	-inlatdir data/lat \
+	-lm data/lang_model_dump.DMP32 \
+	-LRUgram 5 \
+	-maxLRU 100000 \
+	-ngram 5 \
+	-lw 1.0957596232835586e+01 \
+	-logbase 1.0003 \
+	-min_endfr 1 \
+	-maxlpf 100000 \
+	-nbest 3000 \
+	-beamastar 1e-65 \
+	-nbestext lat.gz \
+	-nbestdir output/lat \
+	-fillprob 0.0347663998196475 \
+	-silprob 0.0864140382433117 \
+	-wip 0.919161686569862 \
+	-bestorlat false \
+	-htkin true \
+	-latext lat.gz \
+	-ppathdebug no \
+	-poidspron 9.0488632171932224e+00 \
+	-ctmfp output/ctm0000.ctm
