@@ -372,6 +372,7 @@ void MachSoftmaxClass::WriteData(ostream &outf)
 
 void MachSoftmaxClass::ReadData(istream &inpf, size_t s, int bs)
 {
+  debug0("* read data in MachSoftmaxClass");
   MachLin::ReadData(inpf, s, bs);
   inpf.read((char*) &n_classes, sizeof(int));
 

@@ -31,6 +31,7 @@ const char* DATA_FILE_ASCII="DataAscii";
 DataAscii::DataAscii(char *p_prefix, ifstream &ifs, int p_aux_dim, const string& p_aux_ext, int p_nb_SentSc, const string& p_SentSc_ext,int p_betweenSentCtxt , DataAscii *prev_df)
  : DataFile::DataFile(p_prefix, ifs, p_aux_dim, p_aux_ext, p_nb_SentSc, p_SentSc_ext, p_betweenSentCtxt, prev_df)
 {
+  debug0("** constructor DataAscii\n");
 
   char full_fname[max_word_len]="";
 
@@ -70,6 +71,7 @@ DataAscii::DataAscii(char *p_prefix, ifstream &ifs, int p_aux_dim, const string&
 
 DataAscii::~DataAscii()
 {
+  debug0("** destructor DataAscii\n");
   dfs.close();
   if (idim>0) delete [] input;
   if (odim>0) delete [] target_vect;
@@ -82,6 +84,7 @@ DataAscii::~DataAscii()
 
 void DataAscii::Rewind()
 {
+  debug0("*** DataAscii::Rewind()\n");
   dfs.seekg(0, dfs.beg);
   char buf[DATA_LINE_LEN];
   dfs.getline(buf,DATA_LINE_LEN);
@@ -95,6 +98,7 @@ void DataAscii::Rewind()
 
 bool DataAscii::Next()
 {
+//  debug0("*** DataAscii::Next() "); cout<<idx<< ", fpos=" << dfs.tellg() << endl;
   char line[DATA_LINE_LEN];
   dfs.getline(line, DATA_LINE_LEN);
   if (dfs.eof()) return false;

@@ -144,6 +144,7 @@ TrainerNgramClass::TrainerNgramClass(Mach* pmach, ErrFct* perrfct, Data* data)
 
 TrainerNgramClass::~TrainerNgramClass()
 {
+  debug0("*** Destructor TrainerNgramClass ***\n");
 #ifdef BLAS_CUDA
   if (buf_class_target)
     cudaFreeHost(buf_class_target);
@@ -400,6 +401,7 @@ REAL TrainerNgramClass::TestDev(char *fname)
     }
 
     nb_ex_dev += n;
+    debug2("%d: %f\n",nb_ex_dev,exp(-log_sum/nb_ex_dev));
   } while (data_available);
 
   if (fname) fs.close();

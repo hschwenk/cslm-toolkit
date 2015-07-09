@@ -35,10 +35,12 @@ using namespace std;
 MachSoftmaxStable::MachSoftmaxStable(const int p_idim, const int p_odim, const int p_bsize, const ulong p_nbfw, const ulong p_nbbw, const int shareid, const bool xdata)
  : MachLin(p_idim, p_odim, p_bsize, p_nbfw, p_nbbw, shareid, xdata)
 {
+  debug0("** constructor MachSoftmaxStable\n");
 #if defined(BLAS_CUDA) && defined(BLAS_CUDA_NPPS_SUM)
   int nbytes=0;
   Gpu::SetConfig(gpu_conf);
   nppsSumGetBufferSize_32f(odim, &nbytes);
+  debug2(" - CUDA MachSoftmaxStable: allocating %d bytes for fast sum of %d-dimensional output layer\n",nbytes,odim);
   gpu_sum_buf = nppsMalloc_8u(nbytes);
 #endif
 #ifdef BLAS_CUDA
@@ -51,9 +53,11 @@ MachSoftmaxStable::MachSoftmaxStable(const int p_idim, const int p_odim, const i
 MachSoftmaxStable::MachSoftmaxStable(const MachSoftmaxStable &m)
  : MachLin(m)
 {
+  debug0("** copy constructor MachSoftmaxStable\n");
 #if defined(BLAS_CUDA) && defined(BLAS_CUDA_NPPS_SUM)
   int nbytes=0;
   nppsSumGetBufferSize_32f(odim, &nbytes);
+  debug2(" - CUDA MachSoftmaxStable: allocating %d bytes for fast sum of %d-dimensional output layer\n",nbytes,odim);
   gpu_sum_buf = nppsMalloc_8u(nbytes);
 #endif
 #ifdef BLAS_CUDA
@@ -65,6 +69,7 @@ MachSoftmaxStable::MachSoftmaxStable(const MachSoftmaxStable &m)
 
 MachSoftmaxStable::~MachSoftmaxStable()
 {
+  debug0("** destructor MachSoftmaxStable\n");
 #if defined(BLAS_CUDA) && defined(BLAS_CUDA_NPPS_SUM)
   Gpu::SetConfig(gpu_conf);
   if (gpu_sum_buf) nppsFree(gpu_sum_buf);
@@ -90,6 +95,7 @@ void MachSoftmaxStable::Info(bool detailed, char *txt)
     tm.disp(", ");
     tmn.disp(" + norm: ");
     printf("\n");
+    debug5("%s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
   }
 }
 
@@ -99,6 +105,7 @@ void MachSoftmaxStable::Info(bool detailed, char *txt)
 
 void MachSoftmaxStable::Forw(int eff_bsize, bool in_train)
 {
+  debug2("*** MachSoftmaxStable::Forw: %p -> %p\n",(void*)data_in,(void*)data_out);
 
   if (eff_bsize<=0) eff_bsize=bsize;
   MachLin::Forw(eff_bsize,in_train);
@@ -140,6 +147,7 @@ void MachSoftmaxStable::Forw(int eff_bsize, bool in_train)
 
 void MachSoftmaxStable::Backw(const float lrate, const float wdecay, int eff_bsize)
 {
+  debug2("*** MachSoftmaxStable Backw %p <- %p\n",(void*)grad_in,(void*)grad_out);
     // derivate softmax activation function
     //   do_i / da_k = o_i (kronecker_ik - o_k)
     // we suppose that do_i/da_k vanishes in the error function !!

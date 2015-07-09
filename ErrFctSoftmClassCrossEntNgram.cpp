@@ -29,6 +29,7 @@
 ErrFctSoftmClassCrossEntNgram::ErrFctSoftmClassCrossEntNgram(Mach &mach)
  : ErrFct(mach), grad_class(NULL)
 {
+  debug0("*** ErrFctSoftmClassCrossEntNgram() constructor\n");
 #ifdef BLAS_CUDA
   err = NULL;
   host_err = NULL;
@@ -38,6 +39,7 @@ ErrFctSoftmClassCrossEntNgram::ErrFctSoftmClassCrossEntNgram(Mach &mach)
 ErrFctSoftmClassCrossEntNgram::ErrFctSoftmClassCrossEntNgram(const ErrFctSoftmClassCrossEntNgram &efct)
  : ErrFct(efct), grad_class(NULL)
 {
+  debug0("*** ErrFctSoftmCrossEntNgram() copy constructor\n");
 #ifdef BLAS_CUDA
   err = NULL;
   host_err = NULL;
@@ -277,10 +279,12 @@ REAL ErrFctSoftmClassCrossEntNgram::CalcWordClassError(int eff_bsize)
     if ((int) *tcptr != argmax)
       err_value++;
 
+    debug2("%d/%d, ", (int) *tcptr, argmax);
 
     ocptr += n_classes;
     tcptr++;
   }
 #endif
+  debug1("%d\n", err_value);
   return (REAL) err_value;
 }

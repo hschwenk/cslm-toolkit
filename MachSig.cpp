@@ -30,11 +30,13 @@ using namespace std;
 MachSig::MachSig(const int p_idim, const int p_odim, const int p_bsize, const ulong p_nbfw, const ulong p_nbbw, const int shareid, const bool xdata)
  : MachLin(p_idim, p_odim, p_bsize, p_nbfw, p_nbbw, shareid, xdata)
 {
+  debug0("** constructor MachSig\n");
 }
 
 MachSig::MachSig(const MachSig &m)
  : MachLin(m)
 {
+  debug0("** copy constructor MachSig\n");
 }
 
 MachSig::~MachSig()
@@ -63,6 +65,7 @@ void MachSig::Info(bool detailed, char *txt)
 #endif
     tm.disp(", ");
     printf("\n");
+    debug5("%s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
   }
 }
 
@@ -72,6 +75,7 @@ void MachSig::Info(bool detailed, char *txt)
 
 void MachSig::Forw(int eff_bsize, bool in_train)
 {
+  debug0("** MachSig Forw\n");
 
   tm.start();
 
@@ -86,6 +90,7 @@ void MachSig::Forw(int eff_bsize, bool in_train)
 
 void MachSig::Backw(const float lrate, const float wdecay, int eff_bsize)
 {
+  debug0("** MachSig Backw\n");
     // derivate sigmoidal activation function
     //             = grad_hidden .* ( 1 - a_hidden^2 )
 

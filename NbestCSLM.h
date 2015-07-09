@@ -38,6 +38,7 @@ private:
   REAL	*p;		// array to store the n-gram log probabilities
 public:
   HypSentProba(Hypo &p_hyp, int p_pos, int p_nw) : hyp(p_hyp), lm_pos(p_pos), nw(p_nw), p(new REAL[nw]) {
+    debug1("HypSentProba(): alloc addr %p\n", p);
   };
   ~HypSentProba() { if(p) delete [] p; }
   REAL *GetAddrP() {return p;}
@@ -45,8 +46,10 @@ public:
   {
     REAL logP=0;
     for (int i=0; i<nw-1; i++) {
+      debug2("HypSentProba(): logp=%e at pos %d\n", p[i],i);
       logP+=p[i];
     }
+    debug3("           =>   store sentence logP=%e (log10=%e) at pos %d\n", logP,logP/M_LN10,lm_pos);
     hyp.SetFeature(logP,lm_pos);
   }
 };

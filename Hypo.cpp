@@ -58,6 +58,7 @@ void Hypo::Write(outputfilestream &outf)
 
 float Hypo::CalcGlobal(Weights &w)
 {
+  debug0("HYP: calc global\n");
 
   uint sz=w.val.size();
   if (sz<f.size()) {
@@ -67,9 +68,12 @@ float Hypo::CalcGlobal(Weights &w)
   }
 
   s=0;
+  debug0(" scores:");
   for (uint i=0; i<f.size(); i++) {
+    debug2(" %f x %e", w.val[i], f[i]);
     s+=w.val[i]*f[i];
   }
+  debug1(" -> global score %e\n", s);
 
   return s;
 }

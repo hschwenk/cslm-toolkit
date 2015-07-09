@@ -118,6 +118,7 @@ void TrainerNgramSlist::DoConstructorWork() {
 
   BlockSetMax();  // allocate req
 
+  debug0(" + done init TrainerNgramSlist\n");
 }
 
 //
@@ -132,6 +133,7 @@ TrainerNgramSlist::TrainerNgramSlist (Mach *pmach, Lrate *lrate, ErrFct *perrfct
    lm_fname(strdup(p_lm_fname)), lm_buf_target(new WordID[odim*bsize]),
    slist_len(mach->GetOdim()-1), blm(NULL), wlist(NULL), max_req(0), nreq(0), req(NULL), nb_ngram(0), nb_forw(0)
 {
+  debug0("*** Constructor TrainerNgramSlist for training ***\n");
   cout << "Setting up training with short list" << endl;
   DoConstructorWork();
 }
@@ -147,6 +149,7 @@ TrainerNgramSlist::TrainerNgramSlist (Mach *pmach, ErrFct *perrfct,
    lm_fname(strdup(p_lm_fname)), lm_buf_target(new WordID[odim*bsize]),
    slist_len(mach->GetOdim()-1), blm(NULL), wlist(NULL), max_req(0), nreq(0), req(NULL), nb_ngram(0), nb_forw(0)
 {
+  debug0("*** Constructor TrainerNgramSlist for testing ***\n");
   cout << "Setting up testing with short list" << endl;
   DoConstructorWork();
 }
@@ -157,12 +160,14 @@ TrainerNgramSlist::TrainerNgramSlist (Mach *pmach, WordList *wlist, char *p_lm_f
    lm_fname(strdup(p_lm_fname)), lm_buf_target(new WordID[odim*bsize]),
    slist_len(mach->GetOdim()-1), blm(NULL), wlist(wlist), max_req(0), nreq(0), req(NULL), nb_ngram(0), nb_forw(0)
 {
+  debug0("*** Constructor TrainerNgramSlist for block operations ***\n");
   cout << "Setting up CSLM with short list" << endl;
   DoConstructorWork();
 }
 
 void TrainerNgramSlist::FreeReq()
 {
+  debug3("TrainerNgramSlist::FreeReq(): %p: %d out of %d\n", req, nreq, max_req);
   if (req) {
     for (int i=0; i<nreq; i++) {
       free(req[i].ctxt);
@@ -175,6 +180,7 @@ void TrainerNgramSlist::FreeReq()
 
 TrainerNgramSlist::~TrainerNgramSlist ()
 { 
+  debug0("*** Destructor TrainerNgramSlist ***\n");
 
   if (lm_fname) free(lm_fname);
   delete [] lm_buf_target;
@@ -221,6 +227,10 @@ REAL TrainerNgramSlist::Train()
   errfct->SetTarget(gpu_target);	// we copy from buf_target to gpu_target
   errfct->SetOutput(mach->GetDataOut());
   mach->SetGradOut(errfct->GetGrad());
+  debug1(" - gpu_input %p\n", gpu_input);
+  debug1(" - gpu_target %p\n", gpu_target);
+  debug1(" - grad %p\n", grad);
+  debug1(" - output %p\n", output);
   data_train->Rewind();
   
     // reserve memory on the GPU for all examples
@@ -259,6 +269,7 @@ REAL TrainerNgramSlist::Train()
       if (at_least_one_short) nb_ex_short++;
       n++;
     }
+    debug2("copy bunch of %d words to GPU, totl slist=%d\n", n, nb_ex_slist);
 
     if (nb_ex+n > mem_ex) {
       ErrorN("trying to load %d examples, but memory was reserved for %d examples only\n", nb_ex, mem_ex);
@@ -348,6 +359,8 @@ REAL TrainerNgramSlist::Train()
   Gpu::SetConfig(mach->GetGpuConfig());
   mach->SetDataIn(gpu_input);		// we copy from buf_input to gpu_input
   errfct->SetTarget(gpu_target);	// we copy from buf_target to gpu_target
+  debug1(" - gpu_input %p\n", gpu_input);
+  debug1(" - gpu_target %p\n", gpu_target);
 #else
   mach->SetDataIn(buf_input);
   errfct->SetTarget(buf_target);
@@ -391,6 +404,7 @@ REAL TrainerNgramSlist::Train()
 #endif
       n++;
     }
+    debug2("train bunch of %d words, totl slist=%d\n", n, nb_ex_slist);
 
     if (n>0) {
 #ifdef BLAS_CUDA
@@ -400,6 +414,7 @@ REAL TrainerNgramSlist::Train()
       mach->Forw(n,true); 
       tgrad.start();
       log_sum += errfct->CalcGrad(n);
+      debug1("TrainerNgramSlist::Train - log_sum: %f\n", log_sum);
       tgrad.stop();
       lrate->UpdateLrateOnForw(mach->GetNbForw());
       bprop.start();
@@ -451,6 +466,8 @@ REAL TrainerNgramSlist::DoTestDev(char *fname, bool renorm)
   Gpu::SetConfig(mach->GetGpuConfig());
   mach->SetDataIn(gpu_input);		// we copy from buf_input to gpu_input
   errfct->SetTarget(gpu_target);	// we copy from buf_target to gpu_target
+  debug1(" - gpu_input %p\n", gpu_input);
+  debug1(" - gpu_target %p\n", gpu_target);
 #else
   mach->SetDataIn(buf_input);
   errfct->SetTarget(buf_target);
@@ -463,6 +480,7 @@ REAL TrainerNgramSlist::DoTestDev(char *fname, bool renorm)
       // get a bunch of data
     int n=0, i;
     data_available = true;
+    debug0("start bunch\n");
     while (n < mach->GetBsize() && data_available) {
       data_available = data_dev->Next();
       if (!data_available) break;
@@ -489,6 +507,7 @@ REAL TrainerNgramSlist::DoTestDev(char *fname, bool renorm)
 
       n++;
     }
+    debug1("found bunch of %d\n", n);
 
       // process the bunch by the neural network
     if (n>0) {
@@ -507,6 +526,7 @@ REAL TrainerNgramSlist::DoTestDev(char *fname, bool renorm)
 #else
     REAL *optr=mach->GetDataOut();
 #endif
+    debug1("Collect n=%d\n", n);
     REAL *ptr_input = buf_input;
     for (int ni=0; ni<n; ni++) {
 
@@ -524,6 +544,7 @@ REAL TrainerNgramSlist::DoTestDev(char *fname, bool renorm)
         //logP = blm->BoffLnPid(ptr_input+max(tgpos+1-lm_order, 0), lm_buf_target[ni], tgpos-p+1);
         logP = blm->BoffLnPid(ptr_input+max(tgpos+1-lm_order, 0), lm_buf_target[ni], tgpos-p);
         nb_ex_short++;
+        debug2(" short %d-gram LM: logP=%e\n", idim-p, logP);
       }
       else
 #endif
@@ -536,6 +557,7 @@ REAL TrainerNgramSlist::DoTestDev(char *fname, bool renorm)
           int p;
           for (p = 0 ; (p < tgpos) && (NULL_WORD == ptr_input[p]) ; p++); // search for longest n-gram without NULL_WORD in the first place
           logP = blm->BoffLnPid(ptr_input+max(tgpos+1-lm_order, p), lm_buf_target[ni],min(lm_order, tgpos + 1 - p));
+          debug2(" %d-gram LM: logP=%e\n", lm_order, logP);
 	  //printf("NN slist output=%e\n", optr[buf_target_wid[ni]]);
         }
         else {
@@ -552,6 +574,7 @@ REAL TrainerNgramSlist::DoTestDev(char *fname, bool renorm)
           }
           //REAL logP2 = blm->BoffLnPid(ptr_input+max(tgpos+1-lm_order, 0), lm_buf_target[ni],min(lm_order, tgpos + 1));
           //printf("       CSLM: logP=%e,  ngra,=%e \n", logP, logP2);
+          debug1(" CSLM: logP=%e\n", logP);
           nb_ex_slist++;
         }
       }
@@ -565,6 +588,7 @@ REAL TrainerNgramSlist::DoTestDev(char *fname, bool renorm)
     }
 
     nb_ex += n;
+    debug2("%d: %f\n",nb_ex,exp(-log_sum/nb_ex));
   } while (data_available);
 
   printf(" - %d %d-gram requests, %d=%.2f%% short n-grams, %d=%.2f%% by back-off LM, %d=%5.2f%% predicted by CSLM\n",
@@ -602,6 +626,7 @@ void TrainerNgramSlist::BlockEval(WordID *wid, int o, REAL*p, REAL *aux_data)
     int cl=o-1, i;
     if (cl != iaux) {
 #ifdef CSLM_DOES_SHORT_NGRAMS
+      debug7("TrainerNgramSlist::BlockEval(): add %d st short %d-gram %d %d %d .. -> %d, addr=%p\n", nreq, o, wid[0],wid[1],wid[2],wid[cl], p);
       req[nreq].ctxt_len = iaux;  // use full filled-up n-gram
       req[nreq].ctxt = new WordID[iaux];
 	// fill up incomplete n-gram with NULL-WORD (at the beginning !)
@@ -630,12 +655,15 @@ void TrainerNgramSlist::BlockEval(WordID *wid, int o, REAL*p, REAL *aux_data)
       if (++nreq >= max_req) BlockFinish();
 #else
       //ErrorN("BlockEval() dim %d differs from CSLM %d\n", cl, iaux);
+      debug6("TrainerNgramSlist::BlockEval(): process immediately short %d-gram %d %d %d ... -> %d, addr=%p\n", o, wid[0],wid[1],wid[2],wid[cl], p);
       nb_ex_short++;
       *p = blm->BoffLnStd(wid, wid[cl], o);
+      debug2("  stored logP=%e, log10=%e\n", *p, *p/M_LN10);
 #endif
       return;
     }
 
+    debug7("TrainerNgramSlist::BlockEval(): add %d st %d-gram %d %d %d ... -> %d, addr=%p\n", nreq, o, wid[0],wid[1],wid[2],wid[cl], p);
     req[nreq].ctxt_len = cl;
     req[nreq].ctxt = new WordID[cl];
     for(i=0;i<cl; i++) if (i >= tgpos) { req[nreq].ctxt[i]=wid[i+1];} else { req[nreq].ctxt[i]=wid[i]; }
@@ -658,6 +686,7 @@ void TrainerNgramSlist::BlockEval(WordID *wid, int o, REAL*p, REAL *aux_data)
 
 int NgramReqComp(const void *v1, const void *v2)
 { NgramReq* n1=(NgramReq*) v1, *n2=(NgramReq*) v2;
+  //debug6("compare %d %d %d ? %d %d %d\n", n1->ctxt[0],n1->ctxt[1],n1->ctxt[2], n2->ctxt[0],n2->ctxt[1],n2->ctxt[2]);
      for (int i=0; i<n1->ctxt_len; i++) {
        if (n1->ctxt[i] < n2->ctxt[i]) return -1;
        if (n1->ctxt[i] > n2->ctxt[i]) return 1;
@@ -674,6 +703,7 @@ int NgramReqComp(const void *v1, const void *v2)
 
 void TrainerNgramSlist::BlockFinish()
 {
+  debug1("TrainerNgramSlist::BlockFinish(): processing block of %d n-gram requests\n", nreq);
   if (nreq == 0) return;
 
   nb_ngram+=nreq;
@@ -684,8 +714,10 @@ void TrainerNgramSlist::BlockFinish()
     printf(" -> %d\n", req[i].wpred);
   }
 #endif
+  debug0("START SORT \n");
   //sort(req.begin(),req.end());  // use operator < of Ngramreq
   qsort(req, nreq, sizeof(NgramReq), NgramReqComp);
+  debug0("\nAFTER SORT\n");
 
 #ifdef DEBUG
   for (int i=0; i<nreq; i++) {
@@ -711,9 +743,12 @@ void TrainerNgramSlist::BlockFinish()
 
   int req_beg=0;	// start of current CSLM block in large request array
   int bs=0;  		// current block index in forward bunch
+  debug1(" - analyze %d requests\n", nreq);
   for (n=1; n<nreq; n++) {
+    debug2("RUN comp on %p/%p\n",req+n-1, req+n);
     if (NgramReqComp(req+n-1, req+n) != 0) { 
       bs++;
+      debug1("   %d new context\n", bs);
       if (bs >= bsize) {
         ForwAndCollect(req_beg,n-1,bs,false);
         bs=0; req_beg=n;
@@ -741,6 +776,7 @@ void TrainerNgramSlist::BlockFinish()
 void TrainerNgramSlist::ForwAndCollect(int req_beg, int req_end, int bs, bool renorm)
 {
   if (bs<=0) return;
+  debug3("TrainerNgramSlist::ForwAndCollect(): collecting outputs %d .. %d from bunch of size %d\n", req_beg, req_end, bs);
   nb_forw++;
 #ifdef CUDA
   Gpu::SetConfig(mach->GetGpuConfig());
@@ -768,6 +804,7 @@ void TrainerNgramSlist::ForwAndCollect(int req_beg, int req_end, int bs, bool re
     if (tgt==NULL_WORD) Error("TrainerNgramSlist::ForwAndCollect(): internal error: NULL_WORD in target\n");
     WordID mapped_tgt = wlist->MapIndex(tgt);
     int b=req[n].bs;
+    debug7("request %5d: CSLM block %d, %d %d %d -> %d, mapped=%d\n", n, b, req[n].ctxt[0], req[n].ctxt[1],req[n].ctxt[2],tgt, mapped_tgt);
 #ifdef BLAS_CUDA
     REAL *optr=host_output + b*odim;
 #else
@@ -794,6 +831,7 @@ void TrainerNgramSlist::ForwAndCollect(int req_beg, int req_end, int bs, bool re
             // the order of the back-off LM may be smaller than the one of the CSLM
             // -> this is resolved internally by the back-off class (the last words are used)
           logP = blm->BoffLnPid(ptr_input+max(tgpos+1-lm_order, 0), mapped_tgt, min(lm_order, tgpos + 1)); // TODO target mapped forth an back
+          debug3(" - not slist: %d-gram LM: logP=%e, log10=%e\n", lm_order, logP, logP/M_LN10);
         }
         else {
             // get proba from CSLM
@@ -806,6 +844,7 @@ void TrainerNgramSlist::ForwAndCollect(int req_beg, int req_end, int bs, bool re
           else {
             logP = safelog(optr[mapped_tgt]); // no error check on indices necessary here
           }
+          debug2(" -  in slist CSLM: logP=%e, log10=%e\n", logP, logP/M_LN10);
           nb_ex_slist++;
         }
       }
@@ -819,12 +858,14 @@ void TrainerNgramSlist::ForwAndCollect(int req_beg, int req_end, int bs, bool re
 //**************************************************************************************
 // 
 void TrainerNgramSlist::BlockSetMax(int p_max) {
+  debug3("TrainerNgramSlist::BlockSetMax(%d): prev=%p[%d]\n", p_max, req, max_req);
   if (req) {
     FreeReq();
     delete [] req;
   }
   max_req=p_max;
   req = new NgramReq[max_req];
+  debug2("allocated req at %p for %d elements\n", req, max_req);
   nreq=0;
 }
 

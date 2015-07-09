@@ -1,7 +1,31 @@
-
 *****************************************************************************************
-
 RELEASE V4.0, June 28 2015
+
+ - bug fixes:
+    - deterministic sorting of the wordlist for short lists
+    - corrected race condition in MachTab on GPU leading to concurrent updates
+      now the results are indentical to CPU version, but slight slower
+ - neural network architectures and training:
+    - added classes at the output layer
+    - introduced learning rate schemes
+    - layer-specific learning rates
+    - support for auxillary data at the network input
+    - flexible sharing of parameters
+    - simplified network configuration
+ - refactorisation of GPU code
+    - use of CUDA streams
+    - better GPU kernels for activation functions
+    - more options to select CUDA devices, automatic selection with "-N"
+    - several missing functions are now available on GPU
+ - data handling:
+    - sentence scores
+    - cross-sentence n-grams
+    - arbitrary target position (still experimental)
+    - fast loading of phrases
+ - new tools
+    - dump embeddings
+ - added more documentation
+ - improved tutoriel
 
 *****************************************************************************************
 RELEASE V3.0, March 25 2014

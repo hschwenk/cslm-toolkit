@@ -151,6 +151,7 @@ inline void call_gemv (REAL *dest, REAL *matrix, REAL *source, REAL *bias,
 	//         m x n
 
 
+	debug0("-mkl- call gemv\n");
 #ifdef BLAS_CUDA
 	COPY(dim_dest,bias,inc,dest,inc);  // TODO: verify
   	GEMV(trans, dim_dest, dim_src, fact, matrix, dim_dest, source, inc, fact, dest, inc);

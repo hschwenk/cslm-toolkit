@@ -30,6 +30,7 @@ using namespace std;
 
 void MachCombined::do_alloc()
 {
+  debug2("do_alloc MachCombined %d x %d\n",idim,odim);
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
   if (data_out) cublasFree(data_out);
@@ -40,6 +41,8 @@ void MachCombined::do_alloc()
   winner = Gpu::Alloc(odim*bsize, "winner of a combined machine");
   grad_in = Gpu::Alloc(idim*bsize, "input gradient of a combined machine");
 
+  debug2(" - CUDA data_out alloc %lu bytes at %p\n",sizeof(REAL)*odim*bsize,(void*) data_out);
+  debug2(" - CUDA grad_in  alloc %lu bytes at %p\n",sizeof(REAL)*idim*bsize,(void*) grad_in);
 #else
   if (data_out) delete [] data_out;
   if (winner) delete [] winner;
@@ -47,6 +50,8 @@ void MachCombined::do_alloc()
   data_out = (odim*bsize>0) ? new REAL[odim*bsize] : NULL;
   winner = (odim*bsize>0) ? new REAL[odim*bsize] : NULL;
   grad_in = (idim*bsize>0) ? new REAL[idim*bsize] : NULL;
+  debug2(" - data_out alloc %lu bytes at %p\n",sizeof(REAL)*odim*bsize,(void*) data_out);
+  debug2(" - grad_in  alloc %lu bytes at %p\n",sizeof(REAL)*idim*bsize,(void*) grad_in);
 #endif
 }
 
@@ -58,6 +63,7 @@ void MachCombined::do_alloc()
 MachCombined::MachCombined()
  : MachMulti(), winner(NULL)
 {
+  debug0("*** constructor MachCombined\n");
 }
 
 /*
@@ -68,6 +74,7 @@ MachCombined::MachCombined()
 MachCombined::MachCombined(const MachCombined &m)
  : MachMulti(m), winner(NULL)
 {
+  debug0("*** copy constructor MachCombined\n");
 }
 
 /*
@@ -76,6 +83,7 @@ MachCombined::MachCombined(const MachCombined &m)
 
 MachCombined::~MachCombined()
 {
+  debug1("*** destructor MachCombined %lx\n", (luint) this);
    // data_out and grad_in will be deleted by the desctuctor of Mach
 }
 
@@ -117,6 +125,7 @@ void MachCombined::SetGradOut(REAL *data)
 void MachCombined::MachAdd(Mach *new_mach)
 {
   if (machs.empty()) {
+    debug0("*** add first element to MachCombined\n");
     machs.push_back(new_mach);
 	// think about freeing memory
     idim=new_mach->GetIdim();
@@ -126,6 +135,7 @@ void MachCombined::MachAdd(Mach *new_mach)
     do_alloc();
   }
   else {
+    debug0("*** add new element to MachCombined\n");
     if (new_mach->GetIdim() != idim) 
       ErrorN("input dimension of new combined machine does not match (%d), should be %d",new_mach->GetIdim(),idim);
     if (new_mach->GetOdim() != idim)
@@ -176,6 +186,7 @@ Mach *MachCombined::MachDel()
 
 void MachCombined::ReadData(istream &inpf, size_t s, int bs)
 {
+  debug0("*** read data of MachCombined\n");
   MachMulti::ReadData(inpf, s, bs);
 
   idim = machs[0]->GetIdim();
@@ -207,6 +218,7 @@ void MachCombined::Info(bool detailed, char *txt)
     tm.disp(", ");
     tbackw.disp(" + back: ");
     printf("\n");
+    debug5("*** %s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
     char ntxt[512];
     sprintf(ntxt,"%s  ", txt);
     for (unsigned int i=0; i<machs.size(); i++) machs[i]->Info(detailed, ntxt);
@@ -220,6 +232,7 @@ void MachCombined::Info(bool detailed, char *txt)
 
 void MachCombined::Forw(int eff_bsize, bool in_train)
 {
+  debug2("* MachCombined::Forw: %p -> %p\n", (void*) data_in, (void*) data_out);
   if (machs.empty())
     Error("called Forw() for an empty multiple combined machine");
 
@@ -237,6 +250,7 @@ void MachCombined::Forw(int eff_bsize, bool in_train)
 
 void MachCombined::Backw(const float lrate, const float wdecay, int eff_bsize)
 {
+  debug2("* MachCombined::Backw: %p <- %p\n", (void*) grad_in, (void*) grad_out);
   if (machs.empty())
     Error("called Backw() for an empty combined machine");
 

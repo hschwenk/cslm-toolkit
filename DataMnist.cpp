@@ -48,6 +48,7 @@ uint DataMnist::read_iswap(int fd) {
   
   // swap integer Big Endian -> little Endian
   ps[0]=pi[3]; ps[1]=pi[2]; ps[2]=pi[1]; ps[3]=pi[0];
+  debug2("read=%4x, swap=%4x\n", i, s);
    
   return s;
 }
@@ -59,6 +60,7 @@ uint DataMnist::read_iswap(int fd) {
 DataMnist::DataMnist(char *p_prefix, ifstream &ifs, int p_aux_dim, const string& p_aux_ext, int p_nb_SentSc, string& p_SentSc_ext,int p_betweenSentCtxt, DataMnist *prev_df)
  : DataFile::DataFile(p_prefix, ifs, p_aux_dim, p_aux_ext, p_nb_SentSc, p_SentSc_ext, p_betweenSentCtxt, prev_df)
 {
+  debug0("** constructor DataMnist\n");
   char full_fname[max_word_len]="";
 
   printf(" - %s: MNIST data ", fname); fflush(stdout);
@@ -125,6 +127,7 @@ DataMnist::DataMnist(char *p_prefix, ifstream &ifs, int p_aux_dim, const string&
 
 DataMnist::~DataMnist()
 {
+  debug0("** destructor DataMnist\n");
   close(dfd);
   close(lfd);
   if (idim>0) { delete [] input; delete [] ubuf; }
@@ -139,6 +142,7 @@ DataMnist::~DataMnist()
 
 void DataMnist::Rewind()
 {
+  debug0("*** DataMnist::Rewind()\n");
   lseek(dfd, 16, SEEK_SET);
   lseek(lfd, 8, SEEK_SET);
   if (aux_fs.is_open())
@@ -151,6 +155,7 @@ void DataMnist::Rewind()
 
 bool DataMnist::Next()
 {
+//  debug0("*** DataMnist::Next() "); cout<<idx<< " << endl;
  
     // read next image 
   int t=idim*sizeof(unsigned char);
@@ -182,6 +187,7 @@ bool DataMnist::Next()
     sprintf(msg, "no examples left in class file %s", cl_fname);
     Error(msg);
   }
+  debug1("class %d\n", ubuf[0]);
   target_id = (int) ubuf[0];
   if (target_id>=odim) {
     ErrorN("example %lu has a target of %d, but we have only %d classes\n", idx+1, target_id, odim);

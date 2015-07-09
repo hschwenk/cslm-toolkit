@@ -31,6 +31,7 @@ const char* DATA_FILE_ASCIICLASS="DataAsciiClass";
 DataAsciiClass::DataAsciiClass(char *p_prefix, ifstream &ifs, int p_aux_dim, const string& p_aux_ext, int p_nb_SentSc, const string& p_SentSc_ext,int p_betweenSentCtxt, DataAsciiClass *prev_df)
  : DataAscii::DataAscii(p_prefix, ifs, p_aux_dim, p_aux_ext, p_nb_SentSc, p_SentSc_ext, p_betweenSentCtxt, prev_df)
 {
+  debug0("** constructor DataAsciiClass\n");
 
   if (prev_df) {
     tgt0=prev_df->tgt0;
@@ -50,6 +51,7 @@ DataAsciiClass::DataAsciiClass(char *p_prefix, ifstream &ifs, int p_aux_dim, con
 
 bool DataAsciiClass::Next()
 {
+//  debug0("*** DataAsciiClass::Next() "); cout<<idx<< ", fpos=" << dfs.tellg() << endl;
   char line[DATA_LINE_LEN];
   dfs.getline(line, DATA_LINE_LEN);
   if (dfs.eof()) return false;

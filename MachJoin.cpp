@@ -35,14 +35,17 @@ using namespace std;
  */
 void MachJoin::do_alloc(bool alloc_data_out)
 {
+  debug2("do_alloc MachJoin %d x %d\n",idim,odim);
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
   if (alloc_data_out) {
     if (data_out) cublasFree(data_out);
     data_out = Gpu::Alloc(odim*bsize, "output data of join machine");
+    debug1("ALLOCATE output data [%d] of first machine in MachJoin\n",odim);
   }
   if (grad_in) cublasFree(grad_in);
   grad_in = Gpu::Alloc(idim*bsize, "input gradient of join machine");
+  debug2(" - CUDA grad_in  alloc %lu bytes at %p\n",sizeof(REAL)*idim*bsize,(void*) grad_in);
 
   if (NULL == gpu_dev_data_out)
       gpu_dev_data_out = Gpu::Alloc(odim*bsize*sizeof(REAL), "MachJoin::Forw tmp for AXPY");
@@ -73,14 +76,17 @@ void MachJoin::do_alloc(bool alloc_data_out)
   if (alloc_data_out) {
     if (data_out) delete [] data_out;
     data_out = (odim*bsize>0) ? new REAL[odim*bsize] : NULL;
+    debug1("ALLOCATE output data [%d] of first machine in MachJoin\n",odim);
     // Allocate a buffer that will contain the output gradient passed to
     // each sub-machine. This is needed because the sub-machine's call
     // to Backw() can destroy the content of their grad_out buffer,
     // so we have to pass a copy.
     grad_out_copy = (odim*bsize>0) ? new REAL[odim*bsize] : NULL;
+    debug1("ALLOCATE buffer for a copy of output grad [%d] in MachJoin\n",odim);
   }
   if (grad_in) delete [] grad_in;
   grad_in = (idim*bsize>0) ? new REAL[idim*bsize] : NULL;
+  debug2(" - grad_in  alloc %lu bytes at %p\n",sizeof(REAL)*idim*bsize,(void*) grad_in);
 #endif
 }
 
@@ -124,6 +130,7 @@ void MachJoin::do_delete()
 MachJoin::MachJoin()
  : MachMulti()
 {
+  debug0("** constructor MachJoin\n");
 #ifdef BLAS_CUDA
   gpu_dev_data_out = NULL;
   sub_input_tmp = NULL;
@@ -133,6 +140,7 @@ MachJoin::MachJoin()
 MachJoin::MachJoin(const MachJoin &m)
  : MachMulti(m)
 {
+  debug0("** copy constructor MachJoin\n");
 #ifdef BLAS_CUDA
   gpu_dev_data_out = NULL;
   sub_input_tmp = NULL;
@@ -141,6 +149,7 @@ MachJoin::MachJoin(const MachJoin &m)
 
 MachJoin::~MachJoin()
 {
+  debug0("** destructor MachJoin\n");
   do_delete();
 }
 
@@ -155,6 +164,7 @@ MachJoin *MachJoin::Clone()
 void MachJoin::MachAdd(Mach *new_mach)
 {
   if (machs.empty()) {
+    debug0("** add first element to join machine\n");
     machs.push_back(new_mach);
 	// think about freeing memory
     idim=new_mach->GetIdim();
@@ -165,6 +175,7 @@ void MachJoin::MachAdd(Mach *new_mach)
     grad_out = NULL;
   }
   else {
+    debug0("** add new element to join machine\n");
     if (bsize!=new_mach->GetBsize())
       Error("bunch size of new join machine does not match");
     if (odim!=new_mach->GetOdim())
@@ -268,6 +279,7 @@ void MachJoin::SetGradOut(REAL *data)
 
 void MachJoin::ReadData(istream &inpf, size_t s, int bs)
 {
+  debug0("* read data of MachJoin\n");
 #ifdef BLAS_CUDA
   if (s!=machs.size())
     ErrorN("data block of join machine has %zu machines (%zu were expected)", s, machs.size());
@@ -321,6 +333,7 @@ void MachJoin::Info(bool detailed, char *txt)
     printf("%sJoin machine %d-%d, bs=%d, passes=%lu/%lu", txt, idim, odim, bsize, nb_forw, nb_backw);
     tm.disp(", ");
     printf("\n");
+    debug5("%s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
     char ntxt[512];
     sprintf(ntxt,"%s  ", txt);
     for (unsigned int i=0; i<machs.size(); i++) machs[i]->Info(detailed, ntxt);
@@ -331,6 +344,7 @@ void MachJoin::Info(bool detailed, char *txt)
 // forward pass for all machines and average output into cumulated output
 void MachJoin::Forw(int eff_bsize, bool in_train)
 {
+  debug4("** MachJoin::Forw: %p[%d] -> %p[%d]\n",(void*)data_in,idim,(void*)data_out,odim);
   if (machs.empty())
     Error("called Forw() for an empty join machine");
 
@@ -362,11 +376,13 @@ void MachJoin::Forw(int eff_bsize, bool in_train)
   // sub-machines, which is contiguous and already allocated (see MachAdd).
   REAL *iptr=data_in;
 
+  debug2("MachJoin::Forw: copying input into individual machines input buffers - iptr=%p, idim=%d\n", iptr, idim);
 #ifdef BLAS_CUDA
   Gpu::StreamSynchronize();
 #endif
   for (unsigned int m=0; m<machs.size(); m++) {
     int m_idim = machs[m]->GetIdim();
+    debug3("  machine: %d, ptr=%p, m_idim=%d\n", m, machs[m]->GetDataIn(), m_idim);
     if (activ_forw[m]) {
 #ifdef BLAS_CUDA
       // Use Gpu::Memcpy2DAsync, which does strided copies in just one call
@@ -398,6 +414,7 @@ void MachJoin::Forw(int eff_bsize, bool in_train)
       Gpu::CheckError("MachJoin::Forw after sub-mach->Forw()");
     }
     else {
+      debug1("  MachJoin[%d]: forw deactivated\n",m);
     }
   }
   // Transfer everything to master GPU and accumulate in data_out
@@ -439,6 +456,7 @@ void MachJoin::Forw(int eff_bsize, bool in_train)
       AXPY(&size, &normf, machs[m]->GetDataOut(), &inc1, data_out, &inc1);
     }
     else {
+      debug1("  MachJoin[%d]: forw deactivated\n",m);
     }
   }
 #endif
@@ -455,6 +473,7 @@ void MachJoin::Forw(int eff_bsize, bool in_train)
   }
 
   nb_forw += eff_bsize; 
+  debug0("MachJoin::Forw: done\n");
 
   tm.stop();
   debugMachOutp("MachJoin",data_out,idim,odim,eff_bsize);
@@ -468,18 +487,21 @@ void MachJoin::Forw(int eff_bsize, bool in_train)
   // above the input.
 void MachJoin::Backw(const float lrate, const float wdecay, int eff_bsize)
 {
+  debug4("** MachJoin::Backw: %p[%d] <- %p[%d]\n",(void*)grad_in,idim,(void*)grad_out,odim);
   if (machs.empty())
     Error("called Backw() for an empty join machine");
   if (eff_bsize<=0) eff_bsize=bsize;
  
   tm.start();
 
+  debug4("** MachJoin::Backw:  %p[%d] <- %p[%d]\n", (void*) grad_in, idim, (void*) grad_out, odim);
 
 #ifdef BLAS_CUDA
   // copy grad_out to each submachine's local buffer first
   Gpu::StreamSynchronize();
   for (unsigned int m=0; m<machs.size(); m++) {
     if (activ_backw[m]) {
+      debug2("MachJoin::Backw: Copying grad_out to buffer of machine %d, at %p\n", m, machs[m]->GetGradOut());
       Gpu::SetConfig(machs[m]->GetGpuConfig());
       Gpu::MemcpyAsync(machs[m]->GetGradOut(), grad_out, odim*eff_bsize*sizeof(REAL),
                  cudaMemcpyDeviceToDevice);
@@ -512,6 +534,7 @@ void MachJoin::Backw(const float lrate, const float wdecay, int eff_bsize)
 #endif
     }
     else {
+      debug1("  MachJoin[%d]: backw deactivated\n",m);
     }
   }
 #ifdef BLAS_CUDA

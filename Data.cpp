@@ -78,6 +78,7 @@ Data::Data(const char *p_fname, Data *other_data, bool use_class)
    sr_wl_idx(-1), tg_wl_idx(-1), current_df(0), idx(-1),
    mem_cdf(NULL), mem_inp(NULL), mem_trg(NULL), input(NULL), target(NULL), aux(NULL)
 {
+  debug0("* constructor Data\n");
   ReadFile(other_data, use_class);
 }
 
@@ -354,6 +355,7 @@ void Data::ReadFile(Data *other_data, bool use_class)
 
 Data::~Data()
 {
+  debug0("* destructor Data\n");
   if (preload) {
     delete [] mem_cdf;
     delete [] mem_inp;
@@ -454,12 +456,14 @@ void Data::Preload()
     int odim1=(*itf)[0]->GetOdim();
 
     while (++n < maxn) {
+      debug1("getting example %d\n",idx);
       mem_cdf[idx] = cdf;
 
       bool ok=false;
       while (!ok) {
           // advance synchronously all factors until ok
         for (vector<DataFile*>::iterator it = (*itf).begin(); it!=(*itf).end(); ++it) {
+          debug1("  next factor %ld\n", it-(*itf).begin());
           if (! (*it)->Next()) (*it)->Rewind(); // TODO: deadlock if file empty
         }
 
@@ -469,12 +473,14 @@ void Data::Preload()
 		ok = (drand48() < (*itf)[0]->GetResamplCoef());
 	}
 	
+	debug1("  %s\n", ok ? "keep" : "skip");
       }
 
         // copy all factors sequentially in memory
       REAL *adr_inp=mem_inp+idx*idim;
       REAL *adr_trg=mem_trg+idx*odim;
       for (vector<DataFile*>::iterator it = (*itf).begin(); it!=(*itf).end(); ++it) {
+        debug2("  load factor %ld to address %p\n", it-(*itf).begin(), adr_inp);
         memcpy(adr_inp, (*it)->input, idim1*sizeof(REAL));
 	adr_inp+=idim1;
         if (odim1 > 0) {
@@ -494,6 +500,7 @@ void Data::Preload()
       REAL m=0, *mptr;
       for (e=0, mptr=mem_inp+i; e<idx; e++, mptr+=idim) m+=*mptr;
       m = m/idx; // mean
+      debug2("mean[%d]=%f\n", i, m);
       for (e=0, mptr=mem_inp+i; e<idx; e++, mptr+=idim) *mptr -= m;
     }
   }
@@ -506,6 +513,7 @@ void Data::Preload()
       for (e=0, mptr=mem_inp+i; e<idx; e++, mptr+=idim) { m+=*mptr; m2+=*mptr * *mptr; }
       m = m/idx;  // mean
       m2 = m2/idx - m; // var = 1/n sum_i x_i^2  -  mu^2
+      debug3(" mean, var[%d]=%f %f\n", i, m, m2);
       if (m2>0)
         for (e=0, mptr=mem_inp+i; e<idx; e++, mptr+=idim)
           *mptr = (*mptr - m) / m2;
@@ -530,6 +538,7 @@ void Data::Preload()
 
 void Data::Rewind()
 {
+  debug0("** Data::Rewind()\n");
   if (preload) {
        // clear all data, resample and shuffle again
     Preload();
@@ -541,6 +550,7 @@ void Data::Rewind()
         (*it)->Rewind();
   }
   idx = -1;
+  debug0("** Data::Rewind() done\n");
 }
 
 /**************************

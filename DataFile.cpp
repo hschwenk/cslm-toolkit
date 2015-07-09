@@ -36,6 +36,7 @@ DataFile::DataFile(char *p_path_prefix, ifstream &ifs, int p_aux_dim, const stri
    nb_SentSc(p_nb_SentSc), betweenSent_ctxt(p_betweenSentCtxt), SentSc_ext(p_SentSc_ext), 
    idx(-1), input(NULL), target_vect(NULL), aux(NULL), target_id(0)
 {
+  debug0("** constructor DataFile\n");
   char p_fname[DATA_LINE_LEN];
 
   ifs >> p_fname;
@@ -69,6 +70,7 @@ DataFile::DataFile(char *p_path_prefix, char *p_fname, const float p_rcoeff)
  : idim(0), odim(0), auxdim(0), nbex(0), resampl_coeff(p_rcoeff), path_prefix(p_path_prefix), fname(NULL),
    idx(-1), input(NULL), target_vect(NULL), aux(NULL), target_id(0)
 {
+  debug0("** constructor DataFile with fname\n");
   if (NULL != p_fname)
     fname = strdup(p_fname);
 
@@ -78,6 +80,7 @@ DataFile::DataFile(char *p_path_prefix, char *p_fname, const float p_rcoeff)
 
 DataFile::~DataFile()
 {
+  debug0("** destructor DataFile\n");
   if (fname) free(fname);
   if (aux_fs.is_open())
     aux_fs.close();
@@ -153,6 +156,7 @@ int DataFile::Info(const char *txt)
 
 void DataFile::Rewind()
 {
+  debug0("*** DataFile::Rewind()\n");
   Error("DataFile::Rewind() should be overriden");
 }
 
@@ -174,6 +178,7 @@ bool DataFile::Next()
 
 int DataFile::Resampl()
 {
+  //debug0("*** DataFile::Resampl()\n");
   bool ok=false;
 
   while (!ok) {
@@ -184,6 +189,7 @@ int DataFile::Resampl()
 //cout << " ok=" << ok << endl;
   }
 
+  //debug0("*** DataFile::Resampl() end\n");
   return idx;
 }
 

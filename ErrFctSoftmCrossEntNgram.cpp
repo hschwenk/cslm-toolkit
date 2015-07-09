@@ -31,6 +31,7 @@ ErrFctSoftmCrossEntNgram::ErrFctSoftmCrossEntNgram(Mach &mach)
  : ErrFct(mach)
 {
 #ifdef BLAS_CUDA
+  debug0("*** ErrFctSoftmCrossEntNgram() constructor, allocate CUDA err variable\n");
   Gpu::SetConfig(gpu_conf);
   err = Gpu::Alloc(1, "ErrFctSoftmCrossEntNgram: err variable");
 #endif
@@ -39,6 +40,7 @@ ErrFctSoftmCrossEntNgram::ErrFctSoftmCrossEntNgram(Mach &mach)
 ErrFctSoftmCrossEntNgram::ErrFctSoftmCrossEntNgram(const ErrFctSoftmCrossEntNgram &efct)
  : ErrFct(efct)
 {
+  debug0("*** ErrFctSoftmCrossEntNgram() copy constructor, allocate error\n");
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
   err = Gpu::Alloc(1, "ErrFctSoftmCrossEntNgram: err variable");
@@ -189,6 +191,7 @@ REAL ErrFctSoftmCrossEntNgram::CalcValueNth(int idx)
 
 REAL ErrFctSoftmCrossEntNgram::CalcGrad(int eff_bsize)
 {
+  debug5("ErrFctSoftmCrossEntNgram::CalcGrad() eff_bsize=%d, dim=%d, output=%p, target=%p, grad=%p\n",eff_bsize,dim,(void*)output,(void*)target,(void*)grad);
   if (eff_bsize<=0) eff_bsize=bsize;
 
 #ifdef BLAS_CUDA
@@ -212,6 +215,7 @@ REAL ErrFctSoftmCrossEntNgram::CalcGrad(int eff_bsize)
   for (int b=0; b<eff_bsize; b++) {
     if (*tptr<0.0) ErrorN("negative index %f at %d",*tptr,b);
     tidx=(uint) *tptr++;
+    debug4(" - target=%u -> output at %p is %f, update grad at %p\n",tidx,(void*)(optr+tidx),optr[tidx],(void*)(gptr+tidx));
     gptr[tidx] += 1.0;
     err += safelog(optr[tidx]);
     gptr+=dim; optr+=dim;
@@ -224,6 +228,7 @@ REAL ErrFctSoftmCrossEntNgram::CalcGrad(int eff_bsize)
 
 REAL ErrFctSoftmCrossEntNgram::CalcGradNull(int eff_bsize)
 {
+  debug5("ErrFctSoftmCrossEntNgram::CalcGradNULL() eff_bsize=%d, dim=%d, output=%p, target=%p, grad=%p\n",eff_bsize,dim,(void*)output,(void*)target,(void*)grad);
   if (eff_bsize<=0) eff_bsize=bsize;
 
 #ifdef BLAS_CUDA
@@ -246,6 +251,7 @@ REAL ErrFctSoftmCrossEntNgram::CalcGradNull(int eff_bsize)
   SCAL(&n,&f1,grad,&inc1);
   for (int b=0; b<eff_bsize; b++) {
     tidx=(int) *tptr++;
+    debug5(" -batch=%d target=%u -> output at %p is %f, update grad at %p\n",b,tidx,(void*)(optr+tidx),optr[tidx],(void*)(gptr+tidx));
     if (tidx==NULL_WORD) {
       memset(gptr, 0, dim*sizeof(REAL));
     }

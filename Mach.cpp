@@ -70,10 +70,13 @@ void Mach::do_alloc()
 {  
   Gpu::Init();
 
+  debug3("*** do_alloc CUDA Mach type %d: %dx%d\n",GetMType(),idim,odim);
   data_out = Gpu::Alloc(odim*bsize, "output data for a machine");
+  debug1("*** - data_out=%p\n",(void*)data_out);
   data_in=NULL; //  should be set later by SetDataIn()
   drop_out_rand = NULL; // will be allocated when calling SetDropOut()
   grad_in = Gpu::Alloc(idim*bsize, "input gradient for a machine");
+  debug1("*** - grad_in=%p\n",(void*)grad_in);
   grad_out=NULL; // should be set later by SetGradOut()
 }
 
@@ -84,6 +87,7 @@ void Mach::SetDropOut(const REAL v) {
     drop_out_rand = Gpu::Alloc(odim*bsize, "buffer for random values for drop-out");
   }
   drop_out=v;
+  debug4("drop_out: %f in %p for %dx%d\n",drop_out,drop_out_rand,idim,odim);
 }
 #endif
 
@@ -92,18 +96,21 @@ void Mach::SetDropOut(const REAL v) {
 #ifndef BLAS_CUDA
 void Mach::do_alloc()
 {
+  debug3("*** do_alloc Mach type %d: %dx%d\n",GetMType(),idim,odim);
   if (odim*bsize>0) {
     data_out=::new REAL[odim*bsize];
     if (!data_out) Error ("can't allocate memory for data_out");
     drop_out_rand = NULL; // will be allocated when calling SetDropOut()
   }
   else { data_out=drop_out_rand=NULL; }
+  debug1("*** - data_out=%p\n",(void*)data_out);
   data_in=NULL; // should be set later by SetDataIn() 
   if (idim*bsize>0) {
     grad_in=::new REAL[idim*bsize];
     if (!grad_in) Error ("can't allocate memory for grad_in");
   }
   else grad_in=NULL;
+  debug1("*** - grad_in=%p\n",(void*)grad_in);
   grad_out=NULL; // (luint) this) should be set later by SetGradOut()
 }
 
@@ -115,6 +122,7 @@ void Mach::SetDropOut(const REAL v) {
     if (!drop_out_rand) Error ("can't allocate memory for drop_out");
   }
   drop_out=v;
+  debug4("drop_out: %f in %p for %dx%d\n",drop_out,drop_out_rand,idim,odim);
 }
 #endif
 
@@ -122,6 +130,7 @@ void Mach::SetDropOut(const REAL v) {
 Mach::Mach(const int p_idim, const int p_odim, const int p_bsize, const ulong p_nbfw, const ulong p_nbbw)
  : idim(p_idim), odim(p_odim), bsize(p_bsize), nb_forw(p_nbfw), nb_backw(p_nbbw), update(true), lr_coeff(1.0), drop_out(0.0), drop_out_rand(NULL)
 {
+  debug0("*** constructor Mach\n");
   do_alloc();
 #ifdef BLAS_CUDA
   gpu_conf = Gpu::GetConfig();
@@ -135,6 +144,7 @@ Mach::Mach(const int p_idim, const int p_odim, const int p_bsize, const ulong p_
 
 Mach::Mach(const Mach &m, const int p_idim)
 {
+  debug0("*** copy constructor Mach\n");
   if (p_idim > 0)
     idim = p_idim;
   else
@@ -167,6 +177,7 @@ Mach::Mach(const Mach &m, const int p_idim)
 
 Mach::~Mach()
 {
+  debug1("*** destructor Mach %lx\n", (luint) this);
 #ifdef BLAS_CUDA
   if (data_out) cublasFree(data_out);
   if (drop_out_rand) cublasFree(drop_out_rand);
@@ -184,12 +195,14 @@ Mach::~Mach()
 //-----------------------------------------------
 
 void Mach::WriteParams(ostream &of) {
+  debug0("*** write params of Mach\n");
     // write machine specific params
   of.write((char*) &nb_forw, sizeof(ulong));
   of.write((char*) &nb_backw, sizeof(ulong));
 }
 
 void Mach::WriteData(ostream &of) {
+  debug0("*** writing data of general machine to file\n");
   const int i=0, s=sizeof(REAL);
   of.write((char*) &i, sizeof(int));
   of.write((char*) &s, sizeof(int));
@@ -197,6 +210,7 @@ void Mach::WriteData(ostream &of) {
 
 void Mach::Write(ostream &of)
 {
+  debug0("*** writing data of general machine to file\n");
   char header[file_header_size];
   for (int i=0; i<file_header_size; i++) header[i]=' ';
   sprintf(header,"%s %d",file_header_name, file_header_version);
@@ -217,17 +231,20 @@ void Mach::Write(ostream &of)
 
 void Mach::ReadParams(istream &inpf, bool with_alloc)
 {
+  debug0("*** read params of type Mach\n");
   switch (Mach::fileid) {
     case file_header_version1: // read int but store ulong
       unsigned int itmp;
       inpf.read((char*) &itmp, sizeof(int)); nb_forw = (ulong) itmp;
       inpf.read((char*) &itmp, sizeof(int)); nb_backw = (ulong) itmp;
+      debug2("V1 read int counters %lu/%lu\n",nb_forw,nb_backw);
       break;
     case file_header_version2: 
     case file_header_version3: 
     case file_header_version4: 
       inpf.read((char*) &nb_forw, sizeof(ulong));
       inpf.read((char*) &nb_backw, sizeof(ulong));
+      debug2("V2 to V4 read ulong counters %lu/%lu\n",nb_forw,nb_backw);
       break;
     default:
       Error("internal error, fileid is unset");
@@ -241,6 +258,7 @@ void Mach::ReadData(istream &inpf, size_t s, int bs)
 
 Mach *Mach::Read(istream &inpf, int bs)
 {
+  debug0("\n*** reading generic machine from file\n");
   char header[file_header_size], h[file_header_size];
   int v;
 
@@ -248,6 +266,7 @@ Mach *Mach::Read(istream &inpf, int bs)
   if (sscanf(header,"%s %d",h,&v) != 2) {
     ErrorN("format of machine file not recognised: %s", header);
   }
+
   if (Mach::fileid<0) {
       Mach::fileid=v;
   }
@@ -272,6 +291,7 @@ Mach *Mach::Read(istream &inpf, int bs)
   inpf.read((char*) &f_idim, sizeof(int));
   inpf.read((char*) &f_odim, sizeof(int));
   inpf.read((char*) &f_bsize, sizeof(int));
+  debug3("*** file read: dim=%d x %d, bs=%d\n",f_idim,f_odim,f_bsize);
   if (bs <= 0)
     bs = f_bsize;
 
@@ -330,10 +350,17 @@ Mach *Mach::Read(istream &inpf, int bs)
 	    }
 	
         } else { // before file_header_version3, all MachTab in a MachPar share the weights
+	    
 	    if(prSharedMachines[-1] == NULL ){
+		if(mt->bExternal==0)  m->ReadData(inpf, s, bs); //read the data for the first MachTab
+		else{
+		    Error("The first MachTab should have its own data but is set to have external data\n");
+		}
+		debug2("Storing address (%p) of machine %d\n",mt->GetTabAdr(),m); 
 		prSharedMachines[-1]=m;
 	    } else {
 		m = prSharedMachines[-1]->Clone();
+		debug1(" cloning MachTab, address =  %p\n", mt->GetTabAdr());
 		//fprintf(stderr, " cloning MachTab, address =  %p\n", mt->GetTabAdr());
 	    }
 	  }
@@ -389,6 +416,7 @@ void Mach::Info(bool detailed, char *txt)
 #endif
     tm.disp(", ");
     printf("\n");
+    debug5("*** %s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
   }
 }
 

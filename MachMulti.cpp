@@ -33,12 +33,14 @@ using namespace std;
 MachMulti::MachMulti()
  : Mach(0,0,0)
 {
+  debug0("** constructor MachMulti\n");
   machs.clear();
 }
 
 MachMulti::MachMulti(const MachMulti &m)
  : Mach(m)
 {
+  debug0("** copy constructor MachMulti\n");
   machs.clear();
 }
 
@@ -48,6 +50,7 @@ MachMulti::MachMulti(const MachMulti &m)
 
 MachMulti *MachMulti::Clone()
 {
+  debug1("** MachMulti::Clone %p\n", this);
   MachMulti *m = new MachMulti(*this);
   if (m != NULL)
     m->CloneSubmachs(*this);
@@ -56,7 +59,9 @@ MachMulti *MachMulti::Clone()
 
 void MachMulti::CloneSubmachs(const MachMulti &mm)
 {
+  debug1("** MachMulti::CloneSubmachs %p\n", &mm);
   for (unsigned int m=0; m<mm.machs.size(); m++) {
+    debug2("**  - clone machine %d at %p\n",m,mm.machs[m]);
     this->MachAdd( mm.machs[m]->Clone() );
     if (!activ_forw.empty())
       activ_forw.back() = mm.activ_forw[m];
@@ -71,6 +76,7 @@ void MachMulti::CloneSubmachs(const MachMulti &mm)
 
 MachMulti::~MachMulti()
 {
+  debug1("** destructor MachMulti %lx\n", (luint) this);
   MachMulti::Delete();
   machs.clear();
 }
@@ -113,12 +119,14 @@ ulong MachMulti::GetNbParams() {
 
 
 void MachMulti::WriteParams(ostream &of) {
+  debug0("* write params of MachMulti\n");
   Mach::WriteParams(of);
   int nbm=machs.size();
   of.write((char*) &nbm, sizeof(int));
 }
 
 void MachMulti::WriteData(ostream &outf) {
+  debug0("* writing data of multiple machine to file\n");
   int nbm=machs.size(), s=sizeof(REAL);
   outf.write((char*) &nbm, sizeof(int));
   outf.write((char*) &s, sizeof(int));
@@ -133,6 +141,7 @@ void MachMulti::WriteData(ostream &outf) {
 
 void MachMulti::ReadParams(istream &inpf, bool with_alloc)
 {
+  debug0("* read params of type MachMulti\n");
   if (machs.size() > 0)
     Error("Trying to read multiple machine into non empty data structures\n");
 
@@ -150,6 +159,7 @@ void MachMulti::ReadParams(istream &inpf, bool with_alloc)
 
 void MachMulti::ReadData(istream &inpf, size_t s, int bs)
 {
+  debug0("* read data of MachMulti\n");
   if (s!=machs.size())
     ErrorN("data block of multiple machine has %zu machines (%zu were expected)", s, machs.size());
   

@@ -35,15 +35,18 @@ using namespace std;
 MachLinRectif::MachLinRectif(const int p_idim, const int p_odim, const int p_bsize, const ulong p_nbfw, const ulong p_nbbw, const int shareid, const bool xdata)
  : MachLin(p_idim, p_odim, p_bsize, p_nbfw, p_nbbw, shareid, xdata)
 {
+  debug0("** constructor MachLinRectif\n");
 }
 
 MachLinRectif::MachLinRectif(const MachLinRectif &m)
  : MachLin(m)
 {
+  debug0("** copy constructor MachLinRectif\n");
 }
 
 MachLinRectif::~MachLinRectif()
 {
+  debug1("** destructor MachLinRectif %lx\n",(luint) this);
 }
 
 
@@ -69,6 +72,7 @@ void MachLinRectif::Info(bool detailed, char *txt)
     tm.disp(", ");
     tmh.disp(" + recif: ");
     printf("\n");
+    debug5("%s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
   }
 }
 
@@ -78,6 +82,7 @@ void MachLinRectif::Info(bool detailed, char *txt)
 
 void MachLinRectif::Forw(int eff_bsize, bool in_train)
 {
+  debug2("*** MachLinRectif Forw %p -> %p\n",(void*)data_in,(void*)data_out);
 
   if (eff_bsize<=0) eff_bsize=bsize;
   MachLin::Forw(eff_bsize,in_train);
@@ -102,6 +107,7 @@ void MachLinRectif::Forw(int eff_bsize, bool in_train)
 
 void MachLinRectif::Backw(const float lrate, const float wdecay, int eff_bsize)
 {
+  debug2("*** MachLinRectif Backw %p <- %p\n",(void*)grad_in,(void*)grad_out);
     // derivate tanh activation function
     // multiply grad_hidden by derivatives of hidden layer activities (tanh)
     // grad_out = grad_out .* f'(data_out)

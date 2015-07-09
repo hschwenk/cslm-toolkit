@@ -52,6 +52,7 @@ int Weights::ScanLine()
 {
   if (wf.eof()) Error("Weights::ScanLine() called without open file");
 
+  debug0("scan: waiting...\n");
   string line;
   getline(wf,line);
   if (!wf.good()) return 0;

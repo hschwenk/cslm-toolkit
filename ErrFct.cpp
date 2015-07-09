@@ -40,6 +40,7 @@ ErrFct::ErrFct (Mach &mach)
 #else
   grad = new REAL[dim*bsize];
 #endif
+  debug4("*** ErrFct() constructor, mach=%p, allocated %dx%d for gradient at %p\n",(void*)&mach,bsize,dim,(void*)grad);
 }
 
 ErrFct::ErrFct (const ErrFct &efct)
@@ -53,6 +54,7 @@ ErrFct::ErrFct (const ErrFct &efct)
 #else
   grad = new REAL[dim*bsize];
 #endif
+  debug3("*** ErrFct() copy constructor, allocated %dx%d for gradient at %p\n",bsize,dim,(void*)grad);
 }
 
 //**************************************************************************************

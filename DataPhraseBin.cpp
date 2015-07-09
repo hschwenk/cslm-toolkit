@@ -172,6 +172,7 @@ DataPhraseBin::DataPhraseBin(char *p_prefix, ifstream &ifs, int p_aux_dim, const
  owlist(NULL), onbphw(NULL), ocnbphw(NULL),
  nbi(0)
 {
+  debug0("*** constructor DataPhraseBin\n");
     // DataPhraseBin <file_name> <resampl_coeff> <src_phrase_len> <tgt_phrase_len> [flags]
     // parse addtl params
   if (prev_df) {
@@ -200,6 +201,7 @@ DataPhraseBin::DataPhraseBin(char *p_fname, float p_rcoeff, int p_src_phlen, int
   iwlist(NULL), inbphw(NULL), icnbphw(NULL),
   owlist(NULL), onbphw(NULL), ocnbphw(NULL)
 {
+  debug0("*** constructor DataPhraseBin with fname\n");
 
   do_constructor_work();
     // TODO:  counting ?
@@ -209,6 +211,7 @@ DataPhraseBin::DataPhraseBin(char *p_fname, float p_rcoeff, int p_src_phlen, int
 
 DataPhraseBin::~DataPhraseBin()
 {
+  debug0("*** destructor DataPhraseBin\n");
 
   close(fd);
   if (idim>0) delete [] input;
@@ -239,6 +242,7 @@ void DataPhraseBin::SetWordLists(WordList *p_iwlist, WordList *p_owlist)
 
 bool DataPhraseBin::Next()
 {
+  //debug0("*** DataPhraseBin::Next() \n");
   bool ok=false;
   WordID buf[max_buf_len];
 
@@ -250,6 +254,7 @@ bool DataPhraseBin::Next()
       // read source phrase
     if (!ReadBuffered(&src_len, sizeof(src_len))) return false;
 
+    debug1("source read %d words:", src_len);
     if ((int) src_len>max_buf_len) Error("The source phrase is too long, you need to recompile the program\n");
     if (!ReadBuffered((uchar*)buf, src_len*sizeof(WordID))) Error("DataPhraseBin::Next(): no source phrase left\n");
 #ifdef DEBUG
@@ -257,6 +262,7 @@ bool DataPhraseBin::Next()
     printf("\n");
 #endif
     if ((int) src_len>src_phlen) {
+       debug0(" src too long -> flag to ignore\n");
        nbi++; // ignore: too many source words
        ok=false; // won't be used, but we still need to read the target phrase to keep it in sync
     }
@@ -269,6 +275,7 @@ bool DataPhraseBin::Next()
 
       // read target phrase
     if (!ReadBuffered(&tgt_len, sizeof(tgt_len))) return false;
+    debug1("target read %d words:", tgt_len);
     if ((int)tgt_len>max_buf_len) Error("The target phrase is too long, you need to recompile the program\n");
     if (!ReadBuffered((uchar*)buf, tgt_len*sizeof(WordID))) Error("DataPhraseBin::Next(): no target phrase left\n");
 #ifdef DEBUG
@@ -276,6 +283,7 @@ bool DataPhraseBin::Next()
     printf("\n");
 #endif
     if ((int)tgt_len > tgt_phlen) {
+       debug0(" tgt too long -> ignore\n");
        nbi++; ok=false; continue; // ignore: too many target words
     }
     else {
@@ -286,6 +294,7 @@ bool DataPhraseBin::Next()
   
       // decide wether the current phrase pair is valid in function of the flags
     if (!ok) {
+      debug0(" -> late ignore\n");
       continue;
     }
 
@@ -332,6 +341,7 @@ bool DataPhraseBin::Next()
 
 void DataPhraseBin::Rewind()
 {
+  debug0("*** DataPhraseBin::Rewind()\n");
   lseek(fd, sizeof(int), SEEK_SET);	// position on field max_phrase_len
   int mlen;
   read(fd, &mlen, sizeof(int));		// get max_phrase_len
@@ -339,8 +349,10 @@ void DataPhraseBin::Rewind()
   lseek(fd, pos , SEEK_CUR);
   if (aux_fs.is_open())
     aux_fs.seekg(0, aux_fs.beg);
+  debug2("DataPhraseBin::Rewind(): max_phase_len=%d, advance by %u bytes\n", mlen, pos);
   idx=-1;
     // initialize read buffer
   buf_n=0; buf_pos=-1;
+  debug0("*** DataPhraseBin::Rewind() done\n");
 }
   

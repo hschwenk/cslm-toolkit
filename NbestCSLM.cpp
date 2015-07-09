@@ -105,6 +105,7 @@ void NbestCSLM::RescoreHyp(Hypo &hyp, const int lm_pos)
 
   if (NULL == trainer)
     return;
+  debug2("NbestCSLM::RescoreHyp(): lm_pos=%d, mode=%d\n", lm_pos, mode);
   WordID *wptr = NULL;
   int nw = trainer->GetSentenceIds(wptr, hyp.GetCstr(), mode & RESCORE_MODE_BOS, mode & RESCORE_MODE_EOS);
 
@@ -114,6 +115,7 @@ void NbestCSLM::RescoreHyp(Hypo &hyp, const int lm_pos)
 
     // allocate memory to store the delayed LM probabilities
   delayed_hyps.push_back(new HypSentProba(hyp, lm_pos, nw)); // (nw-1) would be actually enough
+  debug2(" - allocate mem for %d words: addr=%p\n", nw, delayed_hyps.back()->GetAddrP());
 
    // request n-grams that are shorter then CSLM order, starting with 2-, 3-, ... n-gram
   int n=2;
@@ -126,11 +128,13 @@ void NbestCSLM::RescoreHyp(Hypo &hyp, const int lm_pos)
         j++;
   }
   while (n<lm_order && n<=nw) {
+    debug2(" - call BlockEval() for %dst %d-gram (short)\n", n-1, n);
     trainer->BlockEval(wptr, n, delayed_hyps.back()->GetAddrP()+n-2, aux_data);
     n++;
   }
     // request all remaining full n-grams
   while (n<=nw) {  // we have n-1 full n-grams in a sentence with n-words
+    debug2(" - call BlockEval() for %dst %d-gram\n", n-1, lm_order);
     trainer->BlockEval(wptr, lm_order, delayed_hyps.back()->GetAddrP()+n-2, aux_data); // last address will be base+n-1
     n++, wptr++;
   }
@@ -141,6 +145,7 @@ void NbestCSLM::RescoreHyp(Hypo &hyp, const int lm_pos)
 
 void NbestCSLM::FinishPending()
 {
+  debug1("NbestCSLM::FinishPending(): process %u delayed requests for complete hyps\n", (uint) delayed_hyps.size());
   trainer->BlockFinish();
 
   for (vector<HypSentProba*>::iterator i = delayed_hyps.begin(); i != delayed_hyps.end(); i++) {

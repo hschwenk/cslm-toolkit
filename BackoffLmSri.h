@@ -119,8 +119,10 @@ class BackoffLmSri : public BackoffLm {
     for (i=0; i<req_order-1; i++) {	// build context vector in REVERSE order
       int j=req_order-i-2;
       sri_context_idxs[i] = ctxt[j];
+      //debug4(" - context position cslm=%d -> sri=%d, sri_idx=%d word=%s\n", j, i, sri_context_idxs[i], sri_vocab->getWord(sri_context_idxs[i]) );
     }
     sri_context_idxs[i]=Vocab_None; // terminate, this is needed to specify the length of the context
+    //debug3(" - predict cslm_id=%d, sri_idx=%d word=%s\n", predw, predw, sri_vocab->getWord(predw) );
   
 #ifdef DEBUG
     printf(" - SRI %d-gram context: ",req_order);

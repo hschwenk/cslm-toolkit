@@ -87,13 +87,16 @@ protected:
 #if 0
     read(fd, data, cnt);
 #else
+    debug2("DataPhraseBin::ReadBuffered(%p,%lu)\n",data,cnt);
     for (size_t i=0; i<cnt; i++) {
       if (++buf_pos>=buf_n) {
           // read new block of data, we can get less than requested
         buf_n = read(fd, buf_bytes, DATA_FILE_PHRASE_BUF_SIZE);
+        debug1(" -put %d bytes into buffer\n", buf_n);
         if (buf_n<=0) return false; // no data left
         buf_pos=0;
       }
+      debug2(" - copy bytes from buf[%d] to target[%lu]\n", buf_pos,i);
       data[i]=buf_bytes[buf_pos];
     }
 #endif

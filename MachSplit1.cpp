@@ -33,15 +33,18 @@ using namespace std;
 MachSplit1::MachSplit1()
  : MachMulti(), grad_out_split(NULL)
 {
+  debug0("** constructor MachSplit1\n");
 }
 
 MachSplit1::MachSplit1(const MachSplit1 &m)
  : MachMulti(m), grad_out_split(NULL)
 {
+  debug0("** copy constructor MachSplit1\n");
 }
 
 MachSplit1::~MachSplit1()
 {
+  debug0("** destructor MachSplit1\n");
   // data_out and grad_in will be freed by Mach::~Mach()
 #ifdef BLAS_CUDA
   Error("Check setting CUDA device");
@@ -61,12 +64,14 @@ MachSplit1 *MachSplit1::Clone()
  
 void MachSplit1::MachAdd(Mach *new_mach)
 {
+  debug0("*** MachSplit1::MachAdd()");
   if (machs.empty()) {
     machs.push_back(new_mach);
 	// think about freeing memory
     idim=new_mach->GetIdim();
     odim=new_mach->GetOdim();
     bsize=new_mach->GetBsize();
+    debug1("*** adding 1st machine: setting output dim to %d\n", odim);
 #ifdef BLAS_CUDA
     Gpu::SetConfig(gpu_conf);
     data_in=NULL; // will be set by MachSplit1::SetDataIn()
@@ -85,6 +90,7 @@ void MachSplit1::MachAdd(Mach *new_mach)
     new_mach->SetGradOut(NULL); // will be done in Backw()
   }
   else {
+    debug1("*** add new machine of odim %d to split machine\n",new_mach->GetOdim());
     if (bsize!=new_mach->GetBsize())
       Error("bunch size of new split machine does not match");
     if (idim!=new_mach->GetIdim())
@@ -93,6 +99,7 @@ void MachSplit1::MachAdd(Mach *new_mach)
  
       // resize output (idim does not change !)
     odim += new_mach->GetOdim();
+    debug2("*** adding %dth machines: resize output dim to %d\n", (int) machs.size(), odim);
 #ifdef BLAS_CUDA
     Gpu::SetConfig(gpu_conf);
     if (data_out) cublasFree(data_out);
@@ -111,6 +118,7 @@ void MachSplit1::MachAdd(Mach *new_mach)
 
   activ_forw.push_back(true);
   activ_backw.push_back(true);
+  debug4("*** data_in=%p, grad_in=%p, data_out=%p, grad_out=%p\n", data_in, grad_in, data_out, grad_out);
 }
 
 Mach *MachSplit1::MachDel()
@@ -161,6 +169,7 @@ void MachSplit1::SetDataIn(REAL *data)
 {
   data_in=data;
     // all machines point on the same input
+  debug1("*** MachSplit1::SetDataIn() setting all machine to %p\n", data_in); 
   for (unsigned int m=0; m<machs.size(); m++) machs[m]->SetDataIn(data_in);
 }
 
@@ -172,6 +181,7 @@ void MachSplit1::SetDataIn(REAL *data)
 
 void MachSplit1::ReadData(istream &inpf, size_t s, int bs)
 {
+  debug0("* read data of MachSplit1\n");
   MachMulti::ReadData(inpf, s, bs);
 
      // get dimensions
@@ -345,6 +355,7 @@ void MachSplit1::Backw(const float lrate, const float wdecay, int eff_bsize)
 #endif
     }
     else {
+      debug1("  MachSplit1[%d]: backw deactivated\n",m);
     }
   }
 

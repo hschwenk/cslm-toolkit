@@ -31,7 +31,9 @@ MachCopy::MachCopy(const int p_idim, const int p_odim, const int p_bsize, const 
  : Mach(p_idim, p_odim, p_bsize, p_nbfw, p_nbbw)
 {
 #ifdef BLAS_CUDA
+  debug3("*** CUDA constructor MachCopy %d x %d on GPU %d\n", idim,odim,Gpu::GetCudaDevice(Gpu::GetDevice(gpu_conf)));
 #else
+  debug2("*** constructor MachCopy %d x %d\n", idim,odim);
  
  if (odim != idim) {
     Error ("The input size should be equal the output size for copy machine");
@@ -42,6 +44,7 @@ MachCopy::MachCopy(const int p_idim, const int p_odim, const int p_bsize, const 
 MachCopy::MachCopy(const MachCopy &m)
  : Mach(m)
 {
+  debug0("*** copy constructor MachCopy\n");
 }
 
 /*******************************************
@@ -63,7 +66,9 @@ void MachCopy::Info(bool detailed, char *txt)
     tm.newline();
 
 #ifdef BLAS_CUDA
+    debug5("***   %s   cuda data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
 #else
+    debug5("***   %s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
 #endif
   }
 }
@@ -75,6 +80,7 @@ void MachCopy::Info(bool detailed, char *txt)
 
 void MachCopy::ReadData(istream &inpf, size_t s, int bs)
 {
+  debug0("*** read data of MachCopy\n");
   if (0 != s)
     ErrorN("data block of copy machine has %zu elements (0 were expected)", s);
   Mach::ReadData(inpf, 0, bs);
@@ -87,6 +93,7 @@ void MachCopy::ReadData(istream &inpf, size_t s, int bs)
 
 void MachCopy::Forw(int eff_bsize, bool in_train)
 {
+  debug1("*** MachCopy Forw %p\n", (void*)this);
 
   tm.start();
   
@@ -98,6 +105,7 @@ void MachCopy::Forw(int eff_bsize, bool in_train)
 
 #ifdef BLAS_CUDA
     Gpu::MemcpyAsync(data_out, data_in, eff_bsize * odim * sizeof(REAL), cudaMemcpyDeviceToDevice);
+    debug4("*** CUDA: MachCopy::Forw %p[%d] -> %p[%d] \n",data_in,idim,data_out,odim); 
 #else
     memcpy(data_out, data_in, eff_bsize * odim * sizeof(REAL));
 #endif
@@ -110,6 +118,7 @@ void MachCopy::Forw(int eff_bsize, bool in_train)
 
 void MachCopy::Backw(const float lrate, const float wdecay, int eff_bsize)
 {
+  debug2("*** MachCopy Backw %p <- %p\n",(void*)grad_in,(void*)grad_out);
   if (eff_bsize<=0) eff_bsize=bsize;
   if (!grad_out)
     Error("MachCopy::Backw(): output gradient is not set");

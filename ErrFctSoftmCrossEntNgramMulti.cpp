@@ -39,6 +39,7 @@ ErrFctSoftmCrossEntNgramMulti::ErrFctSoftmCrossEntNgramMulti(Mach &mach, int n)
   if (mach.GetOdim()%nb != 0)
     Error("ErrFctSoftmCrossEntNgramMulti: output layer size is not an integer multiple");
   dim = mach.GetOdim() / nb;
+  debug2("ErrFctSoftmCrossEntNgramMulti: %d n-grams of size %d\n", nb, dim);
 }
 
 
@@ -67,12 +68,15 @@ REAL ErrFctSoftmCrossEntNgramMulti::CalcValue(int eff_bsize)
     for (int n=0; n<nb; n++) {
       int tidx=(int) *tptr++;
       if (tidx==NULL_WORD) {
+        debug3("b=%d, n=%d, tidx=NULL, out=%f\n", b, n, optr[tidx]);
       }
       else {
+        debug4("b=%d, n=%d, tidx=%d, out=%f\n", b, n, tidx, optr[tidx]);
         err += log(optr[tidx]);
       }
       optr += dim;
     }
+    debug1("err=%f\n",err);
   }
   return (REAL) err;
 #endif
@@ -145,10 +149,12 @@ REAL ErrFctSoftmCrossEntNgramMulti::CalcValueNth(int idx)
 REAL ErrFctSoftmCrossEntNgramMulti::CalcGrad(int eff_bsize)
 {
   if (eff_bsize<=0) eff_bsize=bsize;
+  debug3("ErrFctSoftmCrossEntNgramMulti::CalcGrad(): %d layers of dim %d, bsize=%d\n", nb, dim, eff_bsize);
 
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
   REAL err = Gpu::ErrFctSoftmCrossEntNgramMultiCalcGrad(eff_bsize, dim, nb, output, grad, target);
+  debug1("ErrFctSoftmCrossEntNgramMulti::CalcGrad err=%f CUDA\n", err);
   return err;
 #else
 
@@ -166,15 +172,18 @@ REAL ErrFctSoftmCrossEntNgramMulti::CalcGrad(int eff_bsize)
     for (n=0; n<nb; n++) {
       tidx=(int) *tptr++;
       if (tidx==NULL_WORD) {
+        debug4("grad ngram-multi:  b=%d, n=%d, tidx=NULL, out=%f -> err=%e\n", b, n, optr[tidx], err);
 	memset(gptr, 0, dim*sizeof(REAL));
       }
       else {
         gptr[tidx] += 1.0;
         err += log(optr[tidx]);
+        debug6("grad ngram-multi:  b=%d, n=%d, tidx=%u, out=%f -> err=%e, grad@target=%e\n", b, n, tidx, optr[tidx], err, gptr[tidx]);
       }
       gptr+=dim; optr+=dim;
     }
   }
+  debug1("ErrFctSoftmCrossEntNgramMulti::CalcGrad err=%f\n", err);
 
   return err;
 #endif

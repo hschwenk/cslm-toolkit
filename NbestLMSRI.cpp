@@ -69,6 +69,7 @@ bool NbestLMSRI::Read (const string &fname, int const order) {
 //
 void NbestLMSRI::RescoreHyp (Hypo &hyp, const int lm_pos, REAL*)
 {
+  debug2("NbestLMSRI::RescoreHyp(): lm_pos=%d, mode=%d\n", lm_pos, mode);
   static TextStats tstats;
   static const int max_words=16384;
   static const int max_chars=max_words*16;
@@ -82,8 +83,10 @@ void NbestLMSRI::RescoreHyp (Hypo &hyp, const int lm_pos, REAL*)
   strcpy(str,hyp.GetCstr()); // we need to copy since parseWords() modifies the string
   int nw = sri_vocab->parseWords(str, vstr, max_words + 1);
   if (nw == max_words+1) Error("too many words in one hypothesis\n");
+  debug1(" parsing found %d words\n", nw);
 
   float logP = sri_ngram->sentenceProb(vstr, tstats);
+  debug1("log10P=%e / 5d\n", logP);
   hyp.SetFeature(logP,lm_pos);
   return;
 }

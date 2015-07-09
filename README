@@ -6,7 +6,7 @@ those references.
 
 This software includes several tools to process lattices in HTK format. Part
 of it is based on code from the Spynx project. Please see the source code
-for the corresponding licence.
+for the corresponding license.
 
 Build instructions:
 -------------------
@@ -28,7 +28,7 @@ You can also choose the LM toolkit to link with
  make BOLM_TOOL=SRILM   SRILM toolkit, you need to download and install the toolkit
 
 In addition, you can include support for continuous space TRANSLATION models. This is
-optionnal since a complete Moses installation is needed.
+optional since a complete Moses installation is needed.
 make CSTM=1     also creates cstm_train and cstm_eval
                 include support for rescoring translation models in the nbest tool
                 (change the variable MOSES_INC for your configuration)
@@ -47,7 +47,7 @@ List of all the tools:
 
  mach_dump	tool to extract individual layers from a large network
 		those can be used to initialize layers of other networks with "init-from-file=layer.mach"
- dumpEmbeddings	extract the embeddigns from a network
+ dumpEmbeddings	extract the embeddings from a network
 
  nn_train       generic neural network training
  nn_info        display information on a neural network
@@ -67,6 +67,12 @@ uses the FORTRAN BLAS functions, i.e. using column-major matrices. You should
 not link with C versions of the BLAS library (which probably use row-major
 matrix storage) !
 
+The code contains many lines with instructions debugX(...) These are left-overs
+from the development phase which were keep just in case we have to debug some
+parts again. In a normal compile, they produce no code and have no impact on
+the speed.  To activate them, type "make DB=-DDEBUG ...". This will produce MANY
+messages on the screen. You may consider compiling like this only the parts
+of the code you want to debug.
 
 Prerequisites:
  - working C++ compiler (tested with g++ 4.8.3)
@@ -86,12 +92,12 @@ Jun 28 2015 V4.0
  - bug fixes:
     - deterministic sorting of the wordlist for short lists
     - corrected race condition in MachTab on GPU leading to concurrent updates
-      now the results are indentical to CPU version, but slight slower
+      now the results are identical to CPU version, but slight slower
  - neural network architectures and training:
     - added classes at the output layer
     - introduced learning rate schemes
     - layer-specific learning rates
-    - support for auxillary data at the network input
+    - support for auxiliary data at the network input
     - flexible sharing of parameters
     - simplified network configuration
  - refactorisation of GPU code
@@ -107,11 +113,11 @@ Jun 28 2015 V4.0
  - new tools
     - dump embeddings
  - added more documentation
- - improved tutoriel
+ - improved tutorial
  
 
 Mar 25 2014  V3.0
- - LGPL licene
+ - LGPL license
  - support of SRILM and KENLM (default)
    for convenience, KENLM is included in the tar and will be automatically compiled
  - new command line interface with configuration files for more flexible specification of network architectures
@@ -134,13 +140,13 @@ Jan 26 2010  V1.0
  - Training and n-best list rescoring is working
  - Short-lists and interpolation of multiple networks is not yet implemented
 
-It is recommended that you join the Google group "continuos-space-language-model-toolkit"
+It is recommended that you join the Google group "continuous-space-language-model-toolkit"
 to be informed of bug corrections, updates and follow other discussions on the tool.
 
 Contributors:
 -------------
 N. Coetmeur                     configuration files, KENLM support, many improvements and fixes 
-W. Aransa			auxillary data, various fixes
+W. Aransa			auxiliary data, various fixes
 L. Barrault			network configuration, in particular parameter sharing
 F. Bastien                      improved GPU code
 F. Bougares			sentences scores, data handling

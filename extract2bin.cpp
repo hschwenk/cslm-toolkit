@@ -133,6 +133,7 @@ int Phrase::AddPhrase(FILE *binf, char *line)
   }
   uchar x= (uchar) nw_in_phr;
   fwrite(&x, sizeof(uchar), 1, binf);	// 1 byte is enough
+  debug2("%s dump %d words:", msg, x);
     // loop on all words in line
   bptr=sptr;
   while ((*bptr != 0) && (*bptr != '\n')) {
@@ -155,6 +156,7 @@ int Phrase::AddPhrase(FILE *binf, char *line)
         voc->GetWordInfo(idx_unk).n++;
         fwrite(&idx_unk, sizeof(WordList::WordIndex), 1, binf);
       }
+      debug2(" UNK: %s[%d]", bptr,idx);
       //idx=unk_w->AddWord(bptr); TODO
 #ifdef COUNT_OOV
       if (idx<0) ErrorN("illegal OOV idx (%d) for word %s\n",idx, bptr);
@@ -166,6 +168,7 @@ int Phrase::AddPhrase(FILE *binf, char *line)
       if (idx<1 || idx>nvoc) ErrorN("illegal word index (%d) for %s word %s\n", idx, msg, bptr);
       voc->GetWordInfo(idx).n++;
       fwrite(&idx, sizeof(WordList::WordIndex), 1, binf);
+      debug2(" %s[%d]", bptr,idx);
     }
 
     bptr = eptr + 1;
@@ -173,6 +176,7 @@ int Phrase::AddPhrase(FILE *binf, char *line)
 
   }
   // TODO for (i=0; i<LINE_LEN; i++) line[i]=0; // TODO: we need to clear the buffer !?
+  debug0("\n");
 
     // stats
   nphw[nw_in_phr]++;

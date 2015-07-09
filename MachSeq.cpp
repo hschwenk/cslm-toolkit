@@ -29,15 +29,18 @@ using namespace std;
 MachSeq::MachSeq()
  : MachMulti()
 {
+  debug0("*** constructor MachSeq\n");
 }
 
 MachSeq::MachSeq(const MachSeq &m)
  : MachMulti(m)
 {
+  debug0("*** copy constructor MachSeq\n");
 }
 
 MachSeq::~MachSeq()
 {
+  debug1("*** destructor MachSeq %lx\n", (luint) this);
   data_out=grad_in=NULL;  // prevent delete[] by ~Mach()
 }
 
@@ -66,6 +69,7 @@ void MachSeq::SetGradOut(REAL *data)
 void MachSeq::MachAdd(Mach *new_mach)
 {
   if (machs.empty()) {
+    debug0("*** add first element to sequential machine\n");
     machs.push_back(new_mach);
 	// think about freeing memory
     idim=new_mach->GetIdim();
@@ -74,6 +78,7 @@ void MachSeq::MachAdd(Mach *new_mach)
     grad_in=new_mach->GetGradIn();
   }
   else {
+    debug0("*** add new element to sequential machine\n");
     Mach *last_mach=machs.back();
     if (last_mach->GetOdim()!=new_mach->GetIdim()) {
       cout << "Current sequential machine:" << endl; Info(false);
@@ -99,6 +104,7 @@ void MachSeq::MachAdd(Mach *new_mach)
   odim=new_mach->GetOdim();
   data_out=new_mach->GetDataOut();
   grad_out=new_mach->GetGradOut();
+  debug4("*** data_in=%p, grad_in=%p, data_out=%p, grad_out=%p\n", data_in, grad_in, data_out, grad_out);
 }
 
 Mach *MachSeq::MachDel()
@@ -141,8 +147,10 @@ void MachSeq::MachInsert(Mach *new_mach, size_t pos)
   if (pos<1 || pos>=machs.size())
     ErrorN("MachSeq::MachInsert() position must be in [%d,%zu], %zu was requested\n",1,machs.size(),pos);
 
+  debug2("*** add new element at pos %lu to sequential machine with %lu\n",pos,machs.size());
   Mach *prev_mach=machs[pos-1];
   Mach *next_mach=machs[pos];
+  debug2("prev=%p, next=%p\n",prev_mach,next_mach);
 
   if (prev_mach->GetOdim()!=new_mach->GetIdim()) {
     cout << "Current sequential machine:" << endl; Info(false);
@@ -180,8 +188,10 @@ void MachSeq::MachInsert(Mach *new_mach, size_t pos)
 
 void MachSeq::ReadData(istream &inpf, size_t s, int bs)
 {
+  debug0("*** read data of MachSeq\n");
   MachMulti::ReadData(inpf, s, bs);
 
+  debug0("*** rebuild data structures\n");
   
   int nbm=machs.size();
   idim = machs[0]->GetIdim();
@@ -218,6 +228,7 @@ void MachSeq::Info(bool detailed, char *txt)
     tm.disp(", ");
     tbackw.disp(" + back: ");
     printf("\n");
+    debug5("*** %s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
     char ntxt[512];
     sprintf(ntxt,"%s  ", txt);
     for (unsigned int i=0; i<machs.size(); i++) machs[i]->Info(detailed, ntxt);
@@ -227,6 +238,7 @@ void MachSeq::Info(bool detailed, char *txt)
 
 void MachSeq::Forw(int eff_bsize, bool in_train)
 {
+  debug2("* MachSeq::Forw: %p -> %p\n", (void*) data_in, (void*) data_out);
   if (machs.empty())
     Error("called Forw() for an empty sequential machine");
 
@@ -242,6 +254,7 @@ void MachSeq::Forw(int eff_bsize, bool in_train)
 
 void MachSeq::Backw(const float lrate, const float wdecay, int eff_bsize)
 {
+  debug2("* MachSeq::Backw: %p <- %p\n", (void*) grad_in, (void*) grad_out);
   if (machs.empty())
     Error("called Backw() for an empty sequential machine");
 

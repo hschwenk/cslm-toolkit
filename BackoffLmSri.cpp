@@ -121,6 +121,7 @@ BackoffLmSri::BackoffLmSri(char *p_fname, int p_max_order, const WordList &wlist
   WordList::const_iterator iter = wlist.Begin(), end = wlist.End();
   for (size_t ci=0; iter!=end; iter++, ci++) {
     VocabIndex vi = sri_vocab->getIndex(iter->word);
+    //debug3("'%s' bin=%d -> sri=%d\n", iter->word, ci, vi);
     if (vi == Vocab_None) {
       fprintf(stderr,"word %s not found at pos %zu\n", iter->word, ci );
     }
@@ -156,6 +157,7 @@ int BackoffLmSri::GetSentenceIds(WordID *&wid, const string &sentence, bool bos,
   strcpy(str,sentence.c_str()); // we need to copy since parseWords() modifies the string
   nw = sri_vocab->parseWords(str, vstr, max_words - 1);
   if (nw >= max_words-1) Error("too many words in one hypothesis\n");
+  debug1(" parsing found %d words\n", nw);
 
   int b=0;
     // start sentence with BOS ?
@@ -171,5 +173,6 @@ int BackoffLmSri::GetSentenceIds(WordID *&wid, const string &sentence, bool bos,
   if (eos) wid_table[nw++]=sri_vocab->seIndex();
 
   wid = wid_table;
+  debug4("* split sent with %d words into %d-grams (bos=%d, eos=%d):\n", nw, sri_order, sri_vocab->ssIndex(), sri_vocab->seIndex());
   return nw;
 }

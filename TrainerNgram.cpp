@@ -34,6 +34,7 @@ TrainerNgram::TrainerNgram (Mach *pmach, Lrate *lrate, ErrFct *perrfct,
  : Trainer(pmach,lrate,perrfct,NULL,NULL,p_wd,p_maxep,p_ep,0),
    order(0)
 {
+  debug0("*** Constructor TrainerNgram for training ***\n");
   char	msg[1024];
 
   idim=mach->GetIdim(); odim=mach->GetOdim(); bsize=mach->GetBsize();
@@ -105,6 +106,7 @@ TrainerNgram::TrainerNgram (Mach *pmach, ErrFct *perrfct, Data *data, int aux_di
  : Trainer(pmach,NULL,perrfct,NULL,NULL,0,0,0),
     order(0)
 {
+  debug0("*** Constructor TrainerNgram for testing ***\n");
   char	msg[1024];
 
   idim=mach->GetIdim(); odim=mach->GetOdim(); bsize=mach->GetBsize();
@@ -275,6 +277,7 @@ REAL TrainerNgram::TestDev(char *fname)
     }
 
     nb_ex_dev += n;
+    debug2("%d: %f\n",nb_ex_dev,exp(-log_sum/nb_ex_dev));
   } while (data_available);
 
   if (fname) fs.close();

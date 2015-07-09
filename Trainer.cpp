@@ -37,6 +37,7 @@ Trainer::Trainer (Mach *pmach, Lrate *lrate, ErrFct *perrfct,
    wdecay(p_wd), nb_ex(0), nb_epoch(p_ep),
    max_epoch(p_maxep), auxdim(0), err_train(0), err_dev(0)
 {
+  debug0("*** Constructor Trainer ***\n");
 
   idim=mach->GetIdim(); odim=mach->GetOdim(); bsize=mach->GetBsize();
   if (train_fname) {
@@ -119,8 +120,10 @@ Trainer::Trainer (Mach *pmach, Lrate *lrate, ErrFct *perrfct,
 
 Trainer::~Trainer()
 {
+  debug0("*** Destructor Trainer ***\n");
   if (data_train) delete data_train;
   if (data_dev && data_dev_alloc) {
+    debug0("freeing data_dev\n");
     delete data_dev;
   }
 #ifdef BLAS_CUDA
@@ -158,12 +161,16 @@ REAL Trainer::Train()
   Gpu::SetConfig(mach->GetGpuConfig());
   mach->SetDataIn(gpu_input);		// we copy from buf_input to gpu_input
   errfct->SetTarget(gpu_target);	// we copy from buf_target to gpu_target
+  debug1(" - gpu_input %p\n", gpu_input);
+  debug1(" - gpu_target %p\n", gpu_target);
 #else
   mach->SetDataIn(buf_input);
   errfct->SetTarget(buf_target);
 #endif
   errfct->SetOutput(mach->GetDataOut());
   mach->SetGradOut(errfct->GetGrad());
+  debug1(" - grad %p\n", errfct->GetGrad());
+  debug1(" - output %p\n", mach->GetDataOut());
 
     // TODO: we could copy all the examples on the GPU and then split into bunches locally
   bool data_available;

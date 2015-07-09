@@ -50,8 +50,26 @@ static const string cslm_version="V3.1";
 //
 #ifdef DEBUG
 # define TRACE(txt) cout << txt;
+# define debug0(F) printf(F)
+# define debug1(F,a) printf(F,a)
+# define debug2(F,a,b) printf(F,a,b)
+# define debug3(F,a,b,c) printf(F,a,b,c)
+# define debug4(F,a,b,c,d) printf(F,a,b,c,d)
+# define debug5(F,a,b,c,d,e) printf(F,a,b,c,d,e)
+# define debug6(F,a,b,c,d,e,f) printf(F,a,b,c,d,e,f)
+# define debug7(F,a,b,c,d,e,f,h) printf(F,a,b,c,d,e,f,h)
+# define debug8(F,a,b,c,d,e,f,h,i) printf(F,a,b,c,d,e,f,h,i)
 #else
 # define TRACE(txt)
+# define debug0(F)
+# define debug1(F,a)
+# define debug2(F,a,b)
+# define debug3(F,a,b,c)
+# define debug4(F,a,b,c,d)
+# define debug5(F,a,b,c,d,e)
+# define debug6(F,a,b,c,d,e,f)
+# define debug7(F,a,b,c,d,e,f,h)
+# define debug8(F,a,b,c,d,e,f,h,i)
 #endif
 
 #ifdef DEBUGEX

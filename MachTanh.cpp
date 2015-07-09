@@ -34,6 +34,7 @@ using namespace std;
 MachTanh::MachTanh(const int p_idim, const int p_odim, const int p_bsize, const ulong p_nbfw, const ulong p_nbbw, const int shareid, const bool xdata)
  : MachLin(p_idim, p_odim, p_bsize, p_nbfw, p_nbbw, shareid, xdata)
 {
+  debug0("** constructor MachTanh\n");
 #ifdef BLAS_CUDA
   tmp_tanh = Gpu::Alloc(odim*bsize, "temporary memory for tanh machine");
 #endif
@@ -42,6 +43,7 @@ MachTanh::MachTanh(const int p_idim, const int p_odim, const int p_bsize, const 
 MachTanh::MachTanh(const MachTanh &m)
  : MachLin(m)
 {
+  debug0("** copy constructor MachTanh\n");
 #ifdef BLAS_CUDA
   tmp_tanh = Gpu::Alloc(odim*bsize, "temporary memory for tanh machine");
 #endif
@@ -49,6 +51,7 @@ MachTanh::MachTanh(const MachTanh &m)
 
 MachTanh::~MachTanh()
 {
+  debug1("** destructor MachTanh %lx\n",(luint) this);
 #ifdef BLAS_CUDA
   if (tmp_tanh) cublasFree(tmp_tanh);
 #endif
@@ -82,6 +85,7 @@ void MachTanh::Info(bool detailed, char *txt)
     tm.disp(", ");
     tmh.disp(" + tanh: ");
     printf("\n");
+    debug5("%s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
   }
 }
 
@@ -91,6 +95,7 @@ void MachTanh::Info(bool detailed, char *txt)
 
 void MachTanh::Forw(int eff_bsize, bool in_train)
 {
+  debug3("*** MachTanh::Forw: mach=%p data: %p <- %p\n", this, data_in, data_out);
 
   if (eff_bsize<=0) eff_bsize=bsize;
   MachLin::Forw(eff_bsize,in_train);
@@ -113,6 +118,7 @@ void MachTanh::Forw(int eff_bsize, bool in_train)
 
 void MachTanh::Backw(const float lrate, const float wdecay, int eff_bsize)
 {
+  debug3("*** MachTanh::Backw: mach=%p grad: %p <- %p\n", this, grad_in, grad_out);
     // derivate tanh activation function
     // multiply grad_hidden by derivatives of hidden layer activities (tanh)
     // grad_out = grad_out .* f'(data_out)
@@ -130,7 +136,9 @@ void MachTanh::Backw(const float lrate, const float wdecay, int eff_bsize)
 # ifdef DEBUG
   { REAL buf[d];
     cublasGetVector(d,sizeof(REAL),data_out,1,buf,1);
+    debug4(" output : %e %e .. %e %e\n", buf[0],buf[1],buf[d-2],buf[d-1]);
     cublasGetVector(d,sizeof(REAL),grad_out,1,buf,1);
+    debug4(" grads_out: %e %e .. %e %e\n", buf[0],buf[1],buf[d-2],buf[d-1]);
   }
 # endif
   // work inplace in grad_out
@@ -138,13 +146,17 @@ void MachTanh::Backw(const float lrate, const float wdecay, int eff_bsize)
 # ifdef DEBUG
   { REAL buf[d];
     cublasGetVector(d,sizeof(REAL),grad_out,1,buf,1);
+    debug4(" grad deriv %e %e .. %e %e\n", buf[0],buf[1],buf[d-2],buf[d-1]);
   }
 # endif
 #else
   VSQR(&d,data_out);
+  debug4(" output^2 : %e %e .. %e %e\n", data_out[0],data_out[1],data_out[d-2],data_out[d-1]);
+  debug4(" grads_out: %e %e .. %e %e\n", grad_out[0],grad_out[1],grad_out[d-2],grad_out[d-1]);
   REAL *aptr = data_out;
   REAL *gptr = grad_out;
   for (int i=0; i<d; i++) *gptr++ *= (1.0 - *aptr++);	// TODO: can we use more MKL ?
+  debug4(" grad deriv %e %e .. %e %e\n", grad_out[0],grad_out[1],grad_out[d-2],grad_out[d-1]);
 #endif
 
   tmh.stop();

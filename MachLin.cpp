@@ -33,21 +33,28 @@ using namespace std;
 
 void MachLin::do_alloc()
 {
+  debug0("do_alloc MachLin\n");
   if(!bExternal){
 #ifdef BLAS_CUDA
+  debug3("*** CUDA do_alloc MachLin %d x %d on GPU %d\n", idim,odim,Gpu::GetCudaDevice(Gpu::GetDevice(gpu_conf)));
   b = Gpu::Alloc(odim, "bias of linear machine");
   w = Gpu::Alloc(idim*odim, "weights of linear machine");
+  debug1("***  bias=%p\n",b);
+  debug1("***  weights=%p\n",w);
 #else
+  debug2("*** constructor MachLin %d x %d\n", idim,odim);
   if (odim>0) {
     b = new REAL[odim];
     if (!b) Error ("can't allocate memory for bias of linear machine");
   }
   else b=NULL;
+  debug1("***  bias=%p\n",b);
   if (idim*odim>0) {
     w = new REAL[idim*odim];
     if (!w) Error ("can't allocate memory for weights of linear machine");
   }
   else w=NULL;
+  debug1("***  weights=%p\n",w);
 #endif
   }
 }
@@ -56,6 +63,7 @@ MachLin::MachLin(const int p_idim, const int p_odim, const int p_bsize, const ul
  : Mach(p_idim, p_odim, p_bsize, p_nbfw, p_nbbw), Shareable(xdata, shareid), bw_shared(NULL), bw_mutex(NULL)
 {
 #ifdef BLAS_CUDA
+  debug3("*** CUDA constructor MachLin %d x %d on GPU %d\n", idim,odim,Gpu::GetCudaDevice(Gpu::GetDevice(gpu_conf)));
 #endif
   do_alloc();
     // initialize clipping
@@ -76,6 +84,7 @@ MachLin::MachLin(const int p_idim, const int p_odim, const int p_bsize, const ul
 MachLin::MachLin(const MachLin &m)
  : Mach(m), Shareable(true, -1), b(NULL), w(NULL), bw_shared(NULL), bw_mutex(NULL)
 {
+  debug0("*** copy constructor MachLin\n");
   iShareId = m.iShareId;
   int inc_bw_shared = 0;
   if (m.bw_mutex != NULL) {
@@ -102,6 +111,7 @@ MachLin::MachLin(const MachLin &m)
 
 MachLin::~MachLin()
 {
+  debug1("*** destructor MachLin %lx\n", (luint) this);
 
 #ifdef BLAS_CUDA
 #else
@@ -122,6 +132,7 @@ MachLin::~MachLin()
     pthread_mutex_lock(bw_mutex);
     if (bw_shared != NULL) {
       if ((*bw_shared) > 0) {
+        debug2("*** cloned -> not freeing w %p and b %p\n", w, b);
         (*bw_shared)--;
         pthread_mutex_unlock(bw_mutex);
         return;
@@ -154,6 +165,7 @@ MachLin::~MachLin()
 
 void MachLin::BiasConst(const REAL val)
 {
+  debug2("MachLin::BiasRandom: %d =%f\n",odim,val);
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
   nppsSet_32f(val, b, odim);
@@ -165,6 +177,7 @@ void MachLin::BiasConst(const REAL val)
 void MachLin::BiasRandom(const REAL range)
 {
   REAL c=range*2.0;
+  debug3("MachLin::BiasRandom: %d r=%f -> +- %f\n",odim,range,c/2.0);
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
 #ifdef CURAND
@@ -185,6 +198,7 @@ void MachLin::BiasRandom(const REAL range)
 
 void MachLin::WeightsConst(const REAL val)
 {
+  debug3("MachLin::WeightsConst: %dx%d =%f\n",idim,odim,val);
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
   nppsSet_32f(val, w, idim*odim);
@@ -195,6 +209,7 @@ void MachLin::WeightsConst(const REAL val)
 
 void MachLin::WeightsID(const REAL scale)
 {
+  debug3("MachLin::WeightsID: %dx%d =%f\n",idim,odim,scale);
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
   REAL * tmp = new REAL[idim * odim];
@@ -217,6 +232,7 @@ void MachLin::WeightsID(const REAL scale)
 void MachLin::WeightsRandom(const REAL range)
 {
   REAL c=range*2.0;
+  debug4("MachLin::WeightsRandom: %dx%d r=%f -> +- %f\n",idim,odim,range,c/2.0);
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
 #ifdef CURAND
@@ -238,6 +254,7 @@ void MachLin::WeightsRandom(const REAL range)
 void MachLin::WeightsRandomFanI(const REAL range)
 {
   REAL c=2.0*range/sqrt((REAL) idim);
+  debug4("MachLin::WeightsRandomFanI: %dx%d r=%f -> +- %f\n",idim,odim,range,c/2.0);
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
 #ifdef CURAND
@@ -260,6 +277,7 @@ void MachLin::WeightsRandomFanI(const REAL range)
 void MachLin::WeightsRandomFanIO(const REAL range)
 {
   REAL c=2.0*range/sqrt((REAL) (idim+odim));
+  debug4("MachLin::WeightsRandomFanIO: %dx%d r=%f -> +- %f\n",idim,odim,range,c/2.0);
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
 #ifdef CURAND
@@ -299,7 +317,9 @@ void MachLin::Info(bool detailed, char *txt)
     printf(", weights=%p, bias=%p", w, b); //DEBUG 
     tm.newline();
 #ifdef BLAS_CUDA
+    debug5("***   %s   cuda data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
 #else
+    debug5("***   %s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
 #endif
   }
 }
@@ -335,6 +355,7 @@ bool MachLin::CopyParams(Mach* mach)
 
 void MachLin::WriteParams(ostream &of)
 {
+  debug0("* write params of type MachLin\n");
   Mach::WriteParams(of);
   if(Mach::fileid >= file_header_version4) {
     //fprintf(stderr, "MachLin::WriteParams - bExternal=%d iShareId=%d\n", (int) bExternal, iShareId);
@@ -346,6 +367,7 @@ void MachLin::WriteParams(ostream &of)
 void MachLin::WriteData(ostream &outf) {
   int i=0, s=sizeof(REAL);
   if (bExternal) {
+    debug0("* MachLin with external address to file\n");
     //fprintf(stderr, " MachLin with external address to file share-id=%d\n", iShareId);
     outf.write((char*) &i, sizeof(int));
     outf.write((char*) &s, sizeof(int));
@@ -371,6 +393,7 @@ void MachLin::WriteData(ostream &outf) {
       outf.write((char*)local_mem,odim*sizeof(REAL));
       delete [] local_mem;
 #else
+      debug0("*** writing data of linear machine to file\n");
       outf.write((char*) w,odim*idim*sizeof(REAL));
       outf.write((char*) b,odim*sizeof(REAL));
 #endif
@@ -383,14 +406,17 @@ void MachLin::WriteData(ostream &outf) {
 
 void MachLin::ReadParams(istream &inpf, bool with_alloc)
 {
+  debug0("* read params of type MachLin\n");
 
   Mach::ReadParams(inpf, false);
   //This should be done for file_version 3 or greater !
   if(Mach::fileid >= file_header_version4){
     inpf.read((char*) &bExternal, sizeof(int));
+    debug1(" - bExternal=%d\n", (int) bExternal);
 //    fprintf(stderr, " - bExternal=%d", (int) bExternal);
 
     inpf.read((char*) &iShareId, sizeof(int));
+    debug1(" - share-id=%d\n", (int) iShareId);
   //  fprintf(stderr, " - share-id=%d\n", (int) iShareId);
   }
   //fprintf(stderr, "\n");
@@ -400,6 +426,7 @@ void MachLin::ReadParams(istream &inpf, bool with_alloc)
 void MachLin::ReadData(istream &inpf, size_t s, int bs)
 {
   size_t se=odim*idim + odim;
+  debug0("*** read data of MachLin\n");
   
   if (bExternal) {
     if (s>0) {
@@ -421,6 +448,7 @@ void MachLin::ReadData(istream &inpf, size_t s, int bs)
   inpf.read((char*)local_mem,odim*idim*sizeof(REAL));
   for (int i=0;i<idim*odim;i++) 
     if (isnan(local_mem[i])) ErrorN("NAN in weights of layer %dx%d\n",idim,odim);
+  debug1("*** CUDA: transfer %d elements for weights to GPU\n",odim*idim);
   cublasSetVector(odim*idim,CUDA_SIZE,local_mem,1,w,1);
   Gpu::CheckError("transfer of weight matrix to GPU memory");
   delete [] local_mem;
@@ -429,6 +457,7 @@ void MachLin::ReadData(istream &inpf, size_t s, int bs)
   inpf.read((char*)local_mem,odim*sizeof(REAL));
   for (int i=0;i<odim;i++) 
     if (isnan(local_mem[i])) ErrorN("NAN in bias of layer %dx%d\n",idim,odim);
+  debug1("*** CUDA: transfer %d elements for bias to GPU\n",odim);
   cublasSetVector(odim,CUDA_SIZE,local_mem,1,b,1);
   Gpu::CheckError("transfer of bias vector to GPU memory");
   delete [] local_mem;
@@ -461,6 +490,7 @@ cout << "\nRead from file:" << endl;
 
 void MachLin::Forw(int eff_bsize, bool in_train)
 {
+  debug1("*** MachLin Forw %p\n", (void*)this);
 
   tm.start();
 
@@ -473,6 +503,7 @@ void MachLin::Forw(int eff_bsize, bool in_train)
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
     // copy bias <eff_bsize> times into result matrix 
+  debug5("*** CUDA: MachLin::Forw %p[%d] -> %p[%d] on GPU %d\n",data_in,idim,data_out,odim,Gpu::GetCudaDevice(Gpu::GetDevice(gpu_conf)));
   Gpu::CopyVectorToMatrix(data_out, b, eff_bsize, odim);
   call_gemm(data_out, w, data_in, 1.0, odim, eff_bsize, idim);
 #else
@@ -495,6 +526,7 @@ void MachLin::Forw(int eff_bsize, bool in_train)
 
 void MachLin::ForwDropout(int eff_bsize, bool in_train)
 {
+  debug0("*** MachLin ForwDropout");
 
   if (drop_out<=0) return;
 
@@ -551,6 +583,7 @@ void MachLin::ForwDropout(int eff_bsize, bool in_train)
 
 void MachLin::Backw(const float lrate, const float wdecay, int eff_bsize)
 {
+  debug2("*** MachLin Backw %p <- %p\n",(void*)grad_in,(void*)grad_out);
   static REAL real1=1.0, real0=0.0;
   static char transN='N', transT='T';
   REAL lrate_bs = lr_coeff * lrate / sqrt(GetBsize());	// scale by block size !

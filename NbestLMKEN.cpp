@@ -49,6 +49,7 @@ bool NbestLMKEN::Read (const string &fname, int const)
 //
 void NbestLMKEN::RescoreHyp (Hypo &hyp, const int lm_pos, REAL*)
 {
+  debug2("NbestLMKEN::RescoreHyp(): lm_pos=%d, mode=%d\n", lm_pos, mode);
   float logP = 0;
   if (NULL != ken_ngram) {
     State state((mode & RESCORE_MODE_BOS) ? ken_ngram->BeginSentenceState() : ken_ngram->NullContextState()), out_state;
@@ -64,6 +65,7 @@ void NbestLMKEN::RescoreHyp (Hypo &hyp, const int lm_pos, REAL*)
     if (mode & RESCORE_MODE_EOS)
       logP += ken_ngram->Score(state, ken_vocab->EndSentence(), out_state);
   }
+  debug1("log10P=%e / 5d\n", logP);
   hyp.SetFeature(logP, lm_pos);
 }
 

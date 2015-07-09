@@ -180,7 +180,6 @@ MachConfig::MachConfig (bool bNeedConfFile, REAL rInitBias) :
           ("nb-backward"          , bpo::value<int> ()->default_value(0), "backward number")
           ("update"               , bpo::value<bool>(), "update parameters during backward (default true)")
           ("lrate-coeff"          , bpo::value<REAL>(), "layer specific coefficient of the learning rate (default 1.0)")
-          ("share-id"          	  , bpo::value<int> ()->default_value(-1), "All machines sharing the same share-id will share their weights (default is all machines share their weights)")
           ;
 
   // machine options for all machine types (including multiple machines)
@@ -210,6 +209,7 @@ MachConfig::MachConfig (bool bNeedConfFile, REAL rInitBias) :
           ("clip-weights"         , bpo::value<REAL>(), "value for clipping weights (used by default with general value)")
           ("clip-gradients-weights",bpo::value<REAL>(), "value for clipping gradients on weights (used by default with general value)")
           ("clip-gradients-bias"  , bpo::value<REAL>(), "value for clipping gradients on biases (used by default with general value)")
+          ("share-id"          	  , bpo::value<int> ()->default_value(-1), "All machines sharing the same share-id will share their weights (default is all machines share their weights)")
           ;
   this->odMachLinConf.add(this->odMachineConf);
 
@@ -217,6 +217,7 @@ MachConfig::MachConfig (bool bNeedConfFile, REAL rInitBias) :
   this->odMachTabConf.add_options()
           ("const-init-project"   , bpo::value<REAL>(), "constant value for initialization of the projection layer")
           ("random-init-project"  , bpo::value<REAL>(), "value for random initialization of the projection layer (method used by default with general value)")
+          ("share-id"          	  , bpo::value<int> ()->default_value(-1), "All machines sharing the same share-id will share their weights (default is all machines share their weights)")
           ;
   this->odMachTabConf.add(this->odMachineConf);
 
@@ -927,7 +928,7 @@ Mach *MachConfig::read_simple_machine (int iMachType, int iBlockSize, bool bMach
     if(iShareId != -1 && prSharedMachines[iShareId] != NULL) {
 	//TODO: should we check the machine type also?
 	if(prSharedMachines[iShareId]->GetMType() != iMachType){
-	  cerr << "WARNING: machines sharing weights have not the same type, check the config file!" << endl;
+	  Error("WARNING: machines sharing weights have not the same type, check the config file!");
 	}
 	if(iMachType == file_header_mtype_tab){
 	    if (prSharedMachines[iShareId]->GetIdim()!=1 || iOutputDim != prSharedMachines[iShareId]->GetOdim()){
@@ -939,7 +940,7 @@ Mach *MachConfig::read_simple_machine (int iMachType, int iBlockSize, bool bMach
 	    cerr << "mach[" << iShareId << "]->odim=" << prSharedMachines[iShareId]->GetOdim() << " odim=" << iOutputDim << endl;
 	  Error("Machines sharing weights have not the same input/output size, check the config file!");
 	}
-	cout << "Cloning previous machine with share-id " << iShareId << endl;
+	//cout << "Cloning previous machine with share-id " << iShareId << endl;
 	pNewMach = prSharedMachines[iShareId]->Clone();
 	if(iMachType == file_header_mtype_lin) pMachLin = (MachLin*) pNewMach; 
 	else if(iMachType == file_header_mtype_tab) pMachTab = (MachTab*) pNewMach; 
@@ -952,8 +953,8 @@ Mach *MachConfig::read_simple_machine (int iMachType, int iBlockSize, bool bMach
 	    }
 	    pNewMach = pMachTab = ((MachTab*)prSharedMachines[iShareId])->Clone();
     } else {
-	if(iShareId==-1) cout << "Creating new machine with no share-id" << endl;
-	else cout << "Creating new machine with share-id " << iShareId << endl;
+	//if(iShareId==-1) cout << "Creating new machine with no share-id" << endl;
+	//else cout << "Creating new machine with share-id " << iShareId << endl;
 	switch (iMachType) {
 	case file_header_mtype_base:
 	  pNewMach = new Mach(iInputDim, iOutputDim, iCurBlockSize, iNbForward, iNbBackward);

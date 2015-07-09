@@ -166,6 +166,7 @@ DataNgramBin::DataNgramBin(char *p_prefix, ifstream &ifs, int p_aux_dim, const s
  : DataFile::DataFile(p_prefix, ifs, p_aux_dim, p_aux_ext, p_nb_SentSc, p_SentSc_ext,p_betweenSentCtxt, prev_df),
   order(0), tgpos(0), eospos(0), mode(0), nbw(0), nbs(0), nbu(0), nbi(0)
 {
+  debug0("*** constructor DataNgramBin\n");
     // DataNgramBin <file_name> <resampl_coeff> <order> [<tgpos>] <mode>
 
     // parse addtl params -> 
@@ -197,6 +198,7 @@ DataNgramBin::DataNgramBin(char *p_fname, float p_rcoeff, int p_order)
   : DataFile::DataFile(NULL, p_fname, p_rcoeff),
     order(p_order), tgpos(p_order - 1), eospos(0), mode(3), nbw(0), nbs(0), nbu(0), nbi(0)
 {
+  debug0("*** constructor DataNgramBin with fname\n");
 
   do_constructor_work();
     // skip counting for efficieny reasons
@@ -209,6 +211,7 @@ DataNgramBin::DataNgramBin(char *p_fname, float p_rcoeff, int p_order, int p_tgp
   : DataFile::DataFile(NULL, p_fname, p_rcoeff),
     order(p_order), tgpos(p_tgpos), mode(p_mode), nbw(0), nbs(0), nbu(0), nbi(0)
 {
+  debug0("*** constructor DataNgramBin with fname\n");
   if (tgpos<0 || tgpos>=order)
     ErrorN("wrong value of target position: %d not in [0,%d]\n",tgpos,order-1);
 
@@ -221,6 +224,7 @@ DataNgramBin::DataNgramBin(char *p_fname, float p_rcoeff, int p_order, int p_tgp
 
 DataNgramBin::~DataNgramBin()
 {
+  debug0("*** destructor DataNgramBin\n");
 
   close(fd);
   if (idim>0) {
@@ -238,6 +242,7 @@ DataNgramBin::~DataNgramBin()
  * */
 bool DataNgramBin::Next()
 {
+  //debug0("*** DataNgramBin::Next() \n");
   bool ok=false;
   string line_sc;
   int i;
@@ -353,12 +358,14 @@ bool DataNgramBin::Next()
 
 void DataNgramBin::Rewind()
 {
+  debug0("*** DataNgramBin::Rewind()\n");
   lseek(fd, header_len, SEEK_SET);
   if (aux_fs.is_open())
     aux_fs.seekg(0, aux_fs.beg);
   if(SentSc_fs.is_open())
     SentSc_fs.seekg(0, aux_fs.beg);
   idx=-1;
+  debug0("*** DataNgramBin::Rewind() done\n");
     // initialize read buffer
   buf_n=0; buf_pos=-1;
   eospos = 0;

@@ -103,6 +103,7 @@ int BackoffLmKen::GetSentenceIds(WordID *&wid, const string &sentence, bool bos,
       nw++;
     }
   }
+  debug1(" parsing found %d words\n", nw);
 
     // end sentence with EOS ?
   if (eos) {
@@ -111,6 +112,7 @@ int BackoffLmKen::GetSentenceIds(WordID *&wid, const string &sentence, bool bos,
   }
 
   wid = &(wid_vect.front());
+  debug4("* split sent with %d words into %d-grams (bos=%d, eos=%d):\n", nw, ken_ngram->Order(), map_ken2wid[ken_vocab->BeginSentence()], map_ken2wid[ken_vocab->EndSentence()]);
   return nw;
 }
 
@@ -138,7 +140,9 @@ REAL BackoffLmKen::BoffLnPw(char **ctxt, char *w, int req_order)
   for (int i = 0; i < (req_order - 1); i++) {
     ken_ngram->Score(state, ken_vocab->Index(ctxt[i]), out_state);
     state = out_state;
+    debug2(" - context position ken=%d, ken_idx=%d\n", i, ken_vocab->Index(ctxt[i]));
   }
+  debug2(" - predict ken_idx=%d, log10P=%e\n", ken_vocab->Index(w), ken_ngram->Score(state, ken_vocab->Index(w), out_state));
 
     // we need to convert from log_10 to ln
   return M_LN10 * ken_ngram->Score(state, ken_vocab->Index(w), out_state);
@@ -168,7 +172,9 @@ REAL BackoffLmKen::BoffLnPid(REAL *ctxt, WordID predw, int req_order)
   for (int i = 0; i < (req_order - 1); i++) {
     ken_ngram->Score(state, map_cslm2ken[(WordID) ctxt[i]], out_state);
     state = out_state;
+    debug2(" - context position ken=%d, ken_idx=%d\n", i, map_cslm2ken[(WordID) ctxt[i]]);
   }
+  debug3(" - predict cslm_id=%d, ken_idx=%d, log10P=%e\n", predw, map_cslm2ken[predw], ken_ngram->Score(state, map_cslm2ken[predw], out_state));
 
     // we need to convert from log_10 to ln
   return M_LN10 * ken_ngram->Score(state, map_cslm2ken[predw], out_state);
@@ -198,7 +204,9 @@ REAL BackoffLmKen::BoffLnStd(WordID *ctxt, WordID predw, int req_order)
   for (int i = 0; i < (req_order - 1); i++) {
     ken_ngram->Score(state, ctxt[i], out_state);
     state = out_state;
+    debug2(" - context position ken=%d, ken_idx=%d\n", i, ctxt[i]);
   }
+  debug3(" - predict cslm_id=%d, ken_idx=%d, log10P=%e\n", predw, predw, ken_ngram->Score(state, predw, out_state));
 
     // we need to convert from log_10 to ln
   return M_LN10 * ken_ngram->Score(state, predw, out_state);

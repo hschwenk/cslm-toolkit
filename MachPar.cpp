@@ -29,6 +29,7 @@ using namespace std;
 
 void MachPar::do_alloc()
 {
+  debug2("do_alloc MachPar %d x %d\n",idim,odim);
 #ifdef BLAS_CUDA
   Gpu::SetConfig(gpu_conf);
   if (data_out) cublasFree(data_out);
@@ -37,11 +38,15 @@ void MachPar::do_alloc()
   data_out = Gpu::Alloc(odim*bsize, "output data of parallel machine");
   grad_in = Gpu::Alloc(idim*bsize, "input gradient of parallel machine");
 
+  debug2(" - CUDA data_out alloc %lu bytes at %p\n",sizeof(REAL)*odim*bsize,(void*) data_out);
+  debug2(" - CUDA grad_in  alloc %lu bytes at %p\n",sizeof(REAL)*idim*bsize,(void*) grad_in);
 #else
   if (data_out) delete [] data_out;
   if (grad_in) delete [] grad_in;
   data_out = (odim*bsize>0) ? new REAL[odim*bsize] : NULL;
   grad_in = (idim*bsize>0) ? new REAL[idim*bsize] : NULL;
+  debug2(" - data_out alloc %lu bytes at %p\n",sizeof(REAL)*odim*bsize,(void*) data_out);
+  debug2(" - grad_in  alloc %lu bytes at %p\n",sizeof(REAL)*idim*bsize,(void*) grad_in);
 #endif
 }
 
@@ -49,15 +54,18 @@ void MachPar::do_alloc()
 MachPar::MachPar()
  : MachMulti()
 {
+  debug0("** constructor MachPar\n");
 }
 
 MachPar::MachPar(const MachPar &m)
  : MachMulti(m)
 {
+  debug0("** copy constructor MachPar\n");
 }
 
 MachPar::~MachPar()
 {
+  debug0("** destructor MachPar\n");
   // data_out and grad_in will be freed by Mach::~Mach()
   for (unsigned int m=0; m<machs.size(); m++)
   {
@@ -82,6 +90,7 @@ MachPar *MachPar::Clone()
 void MachPar::MachAdd(Mach *new_mach)
 {
   if (machs.empty()) {
+    debug0("** add first element to parallel machine\n");
     machs.push_back(new_mach);
 	// think about freeing memory
     idim=new_mach->GetIdim();
@@ -94,6 +103,7 @@ void MachPar::MachAdd(Mach *new_mach)
     do_alloc();
   }
   else {
+    debug0("** add new element to parallel machine\n");
     if (bsize!=new_mach->GetBsize())
       Error("bunch size of new parallel machine does not match");
     machs.push_back(new_mach);
@@ -133,6 +143,7 @@ Mach *MachPar::MachDel()
 
 void MachPar::ReadData(istream &inpf, size_t s, int bs)
 {
+  debug0("* read data of MachPar\n");
   MachMulti::ReadData(inpf, s, bs);
 
      // calculate idim and odim and allocate data_out and grad_in
@@ -162,6 +173,7 @@ void MachPar::ReadData(istream &inpf, size_t s, int bs)
     if (mt->GetMType()==file_header_mtype_tab) {
       if(Mach::fileid >= file_header_version3){
 	if (tadr[mt->GetShareId()] == NULL) {
+	  debug3("Storing address (%p) of machine %d with share-id %d\n",mt->GetTabAdr(),m, mt->GetShareId());
 	  tadr[mt->GetShareId()] = mt->GetTabAdr();
 	    if(mt->GetTabAdr() == NULL) {
 	      std::stringstream oss ("In MachPar: machine "); 
@@ -169,9 +181,11 @@ void MachPar::ReadData(istream &inpf, size_t s, int bs)
 	      Error(oss.str().c_str());
 	    }
 	} else { 
+	  debug3("Setting address (%p) of machine %d with share-id %d\n",mt->GetTabAdr(),m, mt->GetShareId());
 	  mt->SetTabAdr(tadr[mt->GetShareId()]);
         } 
 	*//*else {
+	    debug3("Machine %d with share-id '%s' already has its own weights at address (%p)\n",m, mt->GetShareId(), mt->GetTabAdr());
 	    if(mt->GetTabAdr() == NULL) {
 	      //std::ostringstream oss("In MachPar: machine ");
 	      std::stringstream oss ("In MachPar: machine "); 
@@ -181,8 +195,11 @@ void MachPar::ReadData(istream &inpf, size_t s, int bs)
 	  }*/
         /*} else { // before file_header_version3, all MachTab in a MachPar share the weights
 	    if(tadr[-1] == NULL ){
+		if(tadr[-1]) { debug2("Storing further address (%p) of machine %d\n",tadr[-1],m); } //  cout << "set NEW tadr" << endl; }
+		else { debug2("Storing address (%p) of machine %d\n",mt->GetTabAdr(),m); } //cout << "set tadr" << endl; }
 		tadr[-1]=mt->GetTabAdr();
 	    } else {
+		debug2("setting address of machine %d to %p\n",m,tadr[-1]);
 		//cout << "set address of machine " << m << " to " << tadr[-1] << endl;
 		//mt->FreeTabAdr();
 		mt->SetTabAdr(tadr[-1]);
@@ -207,6 +224,7 @@ void MachPar::Info(bool detailed, char *txt)
     printf("%sParallel machine %d-%d, bs=%d, passes=%lu/%lu", txt, idim, odim, bsize, nb_forw, nb_backw);
     tm.disp(", ");
     printf("\n");
+    debug5("%s   data: %p -> %p, grad %p <- %p\n", txt, (void*)data_in, (void*)data_out, (void*)grad_in, (void*)grad_out);
     char ntxt[512];
     sprintf(ntxt,"%s  ", txt);
     for (unsigned int i=0; i<machs.size(); i++) machs[i]->Info(detailed, ntxt);
@@ -222,6 +240,7 @@ void MachPar::Info(bool detailed, char *txt)
 // forward pass for all machines and copy output into cumulated output
 void MachPar::Forw(int eff_bsize, bool in_train)
 {
+  debug4("** MachPar::Forw: %p[%d] -> %p[%d]\n",(void*)data_in,idim,(void*)data_out,odim);
   if (machs.empty())
     Error("called Forw() for an empty parallel machine");
 
@@ -259,6 +278,7 @@ void MachPar::Forw(int eff_bsize, bool in_train)
     // forward all machines
   for (unsigned int m=0; m<machs.size(); m++) {
     if (activ_forw[m]) {
+      debug1("  MachPar[%d]: forward mach\n",m);
       machs[m]->Forw(eff_bsize,in_train);
     }
     else {
@@ -288,6 +308,7 @@ void MachPar::Forw(int eff_bsize, bool in_train)
   }
 
   nb_forw += eff_bsize; 
+  debug0("MachPar::Forw: done\n");
 
   tm.stop();
   debugMachOutp("MachPar",data_out,idim,odim,eff_bsize);
@@ -296,6 +317,7 @@ void MachPar::Forw(int eff_bsize, bool in_train)
 // backward pass for all machines and copy input gradient into cumulated gradient
 void MachPar::Backw(const float lrate, const float wdecay, int eff_bsize)
 {
+  debug4("** MachPar::Backw: %p[%d] <- %p[%d]\n",(void*)grad_in,idim,(void*)grad_out,odim);
   if (machs.empty())
     Error("called Backw() for an empty parallel machine");
   if (eff_bsize<=0) eff_bsize=bsize;
