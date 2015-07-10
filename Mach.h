@@ -62,6 +62,7 @@
 #define file_header_mtype_max		32
 #define file_header_mtype_avr		33
 
+extern int shareOffs;
 class Mach
 {
 private:
@@ -152,8 +153,12 @@ public:
 
   static int GetFileId(){ return fileid;}
   static void SetFileId(int id){ fileid = id;}
-  static bool canShare(int mtype){ return (mtype>=1 && mtype<=6) || (mtype>=8 && mtype<=10); }
-
+  static bool canShare(int mtype) {
+   return (mtype != file_header_mtype_base 
+        && mtype != file_header_mtype_stab
+        && mtype <= file_header_mtype_softmax_class);
+  }
+  static void SetShareOffs(int val) { shareOffs = val; }
 };
 
 void GpuUnlock();

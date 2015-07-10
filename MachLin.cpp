@@ -339,10 +339,12 @@ bool MachLin::CopyParams(Mach* mach)
     memcpy(this->b, machlin->b,        odim * sizeof(REAL));
     memcpy(this->w, machlin->w, idim * odim * sizeof(REAL));
 #endif
+/*
     if(Mach::fileid >= file_header_version4) {
 	this->bExternal = machlin->bExternal;
 	this->iShareId = machlin->iShareId;
     }
+*/
     return true;
   }
   else

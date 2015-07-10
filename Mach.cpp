@@ -45,6 +45,7 @@ using namespace std;
 vector<Mach*> signal_mach;
 int Mach::fileid=-1;
 std::map<int, Mach *> prSharedMachines; // to store Mach pointers for sharing using clone() function
+int shareOffs=0;	// used to separate several machine loaded by multiple calls of Mach::Read()
 
 #ifdef BLAS_CUDA
 # include "Blas.h"
@@ -262,6 +263,7 @@ Mach *Mach::Read(istream &inpf, int bs)
   char header[file_header_size], h[file_header_size];
   int v;
 
+  debug1("###### READ with shareOffs %d\n",shareOffs);
   inpf.read(header,file_header_size);
   if (sscanf(header,"%s %d",h,&v) != 2) {
     ErrorN("format of machine file not recognised: %s", header);
@@ -338,28 +340,30 @@ Mach *Mach::Read(istream &inpf, int bs)
 	// if version > 3 then check share-id
 	if(Mach::fileid >= file_header_version3){
 	    m->ReadData(inpf, s, bs);
-	    if(prSharedMachines[mt->GetShareId()] == NULL){
-		//fprintf(stderr, " ... new primary MachTab with share-id %d\n", mt->GetShareId());
-		prSharedMachines[mt->GetShareId()] = mt;
+            int shID = shareOffs+mt->GetShareId();
+	    if(prSharedMachines[shID] == NULL){
+		//fprintf(stderr, " ... new primary MachTab with share-id %d\n", shID);
+		prSharedMachines[shID] = mt;
 		if(mt->GetTabAdr() == NULL) {
 		    Error("Mach::Read: machine should have its weights allocated!\n");
 		}
 	    } else {
-		//fprintf(stderr, " ... cloning secondary MachTab with share-id %d\n", mt->GetShareId());
-		m = prSharedMachines[mt->GetShareId()]->Clone();
+		//fprintf(stderr, " ... cloning secondary MachTab with share-id %d\n", shID);
+		m = prSharedMachines[shID]->Clone();
 	    }
 	
         } else { // before file_header_version3, all MachTab in a MachPar share the weights
 	    
-	    if(prSharedMachines[-1] == NULL ){
+	    int shID = shareOffs + -1;
+	    if(prSharedMachines[shID] == NULL ){
 		if(mt->bExternal==0)  m->ReadData(inpf, s, bs); //read the data for the first MachTab
 		else{
 		    Error("The first MachTab should have its own data but is set to have external data\n");
 		}
 		debug2("Storing address (%p) of machine %d\n",mt->GetTabAdr(),m); 
-		prSharedMachines[-1]=m;
+		prSharedMachines[shID]=m;
 	    } else {
-		m = prSharedMachines[-1]->Clone();
+		m = prSharedMachines[shID]->Clone();
 		debug1(" cloning MachTab, address =  %p\n", mt->GetTabAdr());
 		//fprintf(stderr, " cloning MachTab, address =  %p\n", mt->GetTabAdr());
 	    }
@@ -368,18 +372,19 @@ Mach *Mach::Read(istream &inpf, int bs)
     else if(Mach::fileid >= file_header_version4 && Mach::canShare(mtype)) { 
 	//fprintf(stderr, "Shareable machine mtype = %d\n", mtype);
 	Shareable* sharem = dynamic_cast<Shareable*>(m);
+        int shID = shareOffs + sharem->GetShareId();
 	//fprintf(stderr, "Shareable: external=%d  share-id=%d\n", sharem->HasExternalData(), sharem->GetShareId());
 	if(sharem->HasExternalData()){
-	    if(prSharedMachines[sharem->GetShareId()] != NULL){
+	    if(prSharedMachines[shID] != NULL){
 		//fprintf(stderr, " ... secondary machine with share-id %d -> cloning primary machine\n", sharem->GetShareId());
-		m = (MachLin*)prSharedMachines[sharem->GetShareId()]->Clone();
+		m = (MachLin*)prSharedMachines[shID]->Clone();
 	    } else {
 		ErrorN("Found a secondary machine with shareid=%d, but the primary machine is not yet created\n", sharem->GetShareId());
 	    }
 	} else { 
-	    if(sharem->GetShareId() != -1){
+	    if(sharem->GetShareId() != shareOffs + -1){
 		//fprintf(stderr, " ... new primary machine with share-id %d\n", sharem->GetShareId());
-		prSharedMachines[sharem->GetShareId()] = m;
+		prSharedMachines[shID] = m;
 	    } 
 	    //else { fprintf(stderr, " ... new primary machine with no sharing\n"); }
 	    m->ReadData(inpf, s, bs);

@@ -222,7 +222,9 @@ bool LrateDivideAndRecover::UpdateLrateOnDev(REAL rErrDev, REAL rBestErrDev, con
       printf("error: %s\n", strerror(errno));
     else {
       // reload previous best machine parameters
+      Mach::SetShareOffs(random()); // use a new shareOffs since we have one globale table
       Mach* pPrevMach = Mach::Read(ifs);
+      Mach::SetShareOffs(0); // reset
       if (   (pMach->GetNbForw () >= pPrevMach->GetNbForw ())
           && (pMach->GetNbBackw() >= pPrevMach->GetNbBackw())
           &&  pMach->CopyParams(pPrevMach)  )
