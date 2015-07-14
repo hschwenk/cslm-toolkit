@@ -589,7 +589,7 @@ void MachLin::Backw(const float lrate, const float wdecay, int eff_bsize)
   static REAL real1=1.0, real0=0.0;
   static char transN='N', transT='T';
   REAL lrate_bs = lr_coeff * lrate / sqrt(GetBsize());	// scale by block size !
-  REAL epsilon = 1.0 + lrate_bs * wdecay;
+  REAL epsilon = 1.0 - lrate_bs * wdecay;
 
   if (eff_bsize<=0) eff_bsize=bsize;
   if (!grad_out)

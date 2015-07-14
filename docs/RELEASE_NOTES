@@ -1,4 +1,10 @@
 *****************************************************************************************
+RELEASE V4.01 July 14 2015 
+
+ - mainly corrected bug in weight decay (the sign was wrong)
+   This had probably little effect since the default value of 3e-5 was rather small
+   the new default value is 1e-2 and we have observed perplexity improvements in several tasks
+
 RELEASE V4.0, June 28 2015
 
  - bug fixes:

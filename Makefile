@@ -46,6 +46,7 @@ NEXT_PATCH_VERSION = $(MAJOR).$(MINOR).$(shell expr $(PATCH) + 1)-b$(BUILD)
 .DEFAULT: all
 CUDA_ROOT ?= /opt/cuda
 CUDA ?= 0
+DEBUG ?= 0
 # K20: sm_35 / M2090: sm_20 / GTX690: sm_30 / GTX580: sm_20
 NVCC_FLAGS ?= -g -arch=sm_35 -use_fast_math
 
@@ -171,7 +172,11 @@ OPT_FLAGS?=-mtune=native -march=native -O3 -Ofast
 #  corei7:	eg. Intel X5675, Core i7 with sse4_2, aes, pclmulqdq)
 #  corei7-avx:	eg. Intel E5-2670 which adds avx
 #  corei7-avx-i:	eg. Intel E5-2690v2 which adds avx
-CFLAGS=${OPT_FLAGS} -Wall -g ${DB} ${BLAS} ${BOLM_FLAGS} ${MOSES_INC} ${MOSES_CFLAGS}
+CFLAGS=${OPT_FLAGS} -Wall -g ${DB} ${BLAS} ${BOLM_FLAGS} ${MOSES_INC} ${MOSES_CFLAGS} 
+#-D DEBUG=1
+ifneq "$(DEBUG)" "0"
+	CFLAGS+=-DDEBUG=1
+endif
 
 OBJS:=$(SRCS:.cpp=.o)
 OBJS:=$(OBJS:.cu=.o)

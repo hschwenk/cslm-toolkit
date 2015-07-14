@@ -565,8 +565,6 @@ private:
   boost::program_options::variables_map vmGeneralOptions; ///< map of general options
   std::map<std::string,Mach*> mMachNameMap; ///< map of machine names
   
-  std::map<int, Mach *> prSharedMachines; // to store Mach pointers for sharing using clone() function
-
   /**
    * open configuration file
    * @return false in case of error, true otherwise

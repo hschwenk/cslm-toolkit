@@ -25,6 +25,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <map>
 #include "Tools.h"
 #include "Blas.h"
 #include "Timer.h"
@@ -62,13 +63,14 @@
 #define file_header_mtype_max		32
 #define file_header_mtype_avr		33
 
-extern int shareOffs;
+
 class Mach
 {
 private:
   void do_alloc();	// perform allocation of dynamic data structures
 protected:
   static int fileid;
+  static std::map<int, Mach *> prSharedMachines; // to store Mach pointers for sharing using clone() function
   int idim, odim;		// input and output dimension
   int bsize;			// block size (nb of example used in parallel)
   ulong nb_forw;		// nb of forward examples processed
@@ -145,7 +147,9 @@ public:
   virtual bool CopyParams(Mach*);	// copy parameters from another machine
     // FILE IO
   static Mach *Read(istream&, int=0);	// read class from a stream
+  static Mach *ReadFromFile(const char*, int=0); // read class from a file, call Read
   void Write(ostream&); // write content of class to a stream
+  void WriteToFile(const char*); // write content of class to a stream
     // Training
   virtual void Forw(int=0, bool=false);	// calculate outputs for current inputs
     // backprop gradients from output to input and update all weights
@@ -153,12 +157,15 @@ public:
 
   static int GetFileId(){ return fileid;}
   static void SetFileId(int id){ fileid = id;}
+  static Mach* GetSharedMachine(int i){ return prSharedMachines[i]; }
+  static void SetSharedMachine(int i, Mach* m){ prSharedMachines[i]=m; }
+
   static bool canShare(int mtype) {
    return (mtype != file_header_mtype_base 
         && mtype != file_header_mtype_stab
         && mtype <= file_header_mtype_softmax_class);
   }
-  static void SetShareOffs(int val) { shareOffs = val; }
+  static void ResetSharedMachines() { prSharedMachines.clear(); }
 };
 
 void GpuUnlock();

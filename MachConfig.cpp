@@ -24,6 +24,7 @@
 #include <boost/program_options/parsers.hpp>
 #include <cstring>
 #include <strings.h>
+#include "Mach.h"
 #include "MachAvr.h"
 #include "MachConfig.h"
 #include "MachJoin.h"
@@ -43,6 +44,7 @@
 #include "MachTanh.h"
 #include "Tools.h"
 #include "MachCopy.h"
+
 
 namespace bpo = boost::program_options;
 
@@ -119,7 +121,7 @@ MachConfig::MachConfig (bool bNeedConfFile, REAL rInitBias) :
           ("clip-weights,w"       , opt_sem<REAL>::new_sem(&this->rClipWeights  )->default_value(    0  ), "value for clipping weights (no clipping by default)")
           ("clip-gradients-weights,g",opt_sem<REAL>::new_sem(&this->rClipGradWeights)->default_value(0  ), "value for clipping gradients on weights (no clipping by default)")
           ("clip-gradients-bias,G", opt_sem<REAL>::new_sem(&this->rClipGradBias )->default_value(    0  ), "value for clipping gradients on biases (no clipping by default)")
-          ("weight-decay,W"       , opt_sem<REAL>::new_sem(                     )->default_value(  3E-05), "coefficient of weight decay")
+          ("weight-decay,W"       , opt_sem<REAL>::new_sem(                     )->default_value(  0.01), "coefficient of weight decay")
           ("backward-tm,V"        , opt_sem<bool>::new_sem()->zero_tokens(), "use an inverse back-ward translation model")
           ("renormal,R"           , opt_sem<bool>::new_sem()->zero_tokens(), "renormalize all probabilities, slow for large short-lists")
           ("recalc,r"             , opt_sem<bool>::new_sem()->zero_tokens(), "recalculate global scores")
@@ -925,33 +927,33 @@ Mach *MachConfig::read_simple_machine (int iMachType, int iBlockSize, bool bMach
     MachTab *pMachTab = NULL;
 
     iShareId = vmMachParams["share-id"].as<int>();
-    if(iShareId != -1 && prSharedMachines[iShareId] != NULL) {
+    if(iShareId != -1 && Mach::GetSharedMachine(iShareId) != NULL) {
 	//TODO: should we check the machine type also?
-	if(prSharedMachines[iShareId]->GetMType() != iMachType){
+	if(Mach::GetSharedMachine(iShareId)->GetMType() != iMachType){
 	  Error("WARNING: machines sharing weights have not the same type, check the config file!");
 	}
 	if(iMachType == file_header_mtype_tab){
-	    if (prSharedMachines[iShareId]->GetIdim()!=1 || iOutputDim != prSharedMachines[iShareId]->GetOdim()){
+	    if (Mach::GetSharedMachine(iShareId)->GetIdim()!=1 || iOutputDim != Mach::GetSharedMachine(iShareId)->GetOdim()){
 		Error("MachTab sharing weights have not the same input/output size, check the config file!");
 	    }
 	}
-	else if(iInputDim != prSharedMachines[iShareId]->GetIdim() || iOutputDim != prSharedMachines[iShareId]->GetOdim()){
-	    cerr << "mach[" << iShareId << "]->idim=" << prSharedMachines[iShareId]->GetIdim() << " idim=" << iInputDim << endl;
-	    cerr << "mach[" << iShareId << "]->odim=" << prSharedMachines[iShareId]->GetOdim() << " odim=" << iOutputDim << endl;
+	else if(iInputDim != Mach::GetSharedMachine(iShareId)->GetIdim() || iOutputDim != Mach::GetSharedMachine(iShareId)->GetOdim()){
+	    cerr << "mach[" << iShareId << "]->idim=" << Mach::GetSharedMachine(iShareId)->GetIdim() << " idim=" << iInputDim << endl;
+	    cerr << "mach[" << iShareId << "]->odim=" << Mach::GetSharedMachine(iShareId)->GetOdim() << " odim=" << iOutputDim << endl;
 	  Error("Machines sharing weights have not the same input/output size, check the config file!");
 	}
 	//cout << "Cloning previous machine with share-id " << iShareId << endl;
-	pNewMach = prSharedMachines[iShareId]->Clone();
+	pNewMach = Mach::GetSharedMachine(iShareId)->Clone();
 	if(iMachType == file_header_mtype_lin) pMachLin = (MachLin*) pNewMach; 
 	else if(iMachType == file_header_mtype_tab) pMachTab = (MachTab*) pNewMach; 
-    } else if(iShareId == -1 && prSharedMachines[iShareId] != NULL && iMachType == file_header_mtype_tab) {
+    } else if(iShareId == -1 && Mach::GetSharedMachine(iShareId) != NULL && iMachType == file_header_mtype_tab) {
 	    // special case for MachTab
 	    // All MachTab share their weights by default. This is for compatibility with previously built system
 	    //  cout << "Create MachTab with share-id " << iShareId << " -> cloning existing machine with that share-id" << endl;
-	    if(iInputDim != prSharedMachines[iShareId]->GetIdim() || iOutputDim != prSharedMachines[iShareId]->GetOdim()){
+	    if(1 != Mach::GetSharedMachine(iShareId)->GetIdim() || iOutputDim != Mach::GetSharedMachine(iShareId)->GetOdim()){
 	      Error("Machines sharing weights have not the same input/output size, check the config file!");
 	    }
-	    pNewMach = pMachTab = ((MachTab*)prSharedMachines[iShareId])->Clone();
+	    pNewMach = pMachTab = ((MachTab*)Mach::GetSharedMachine(iShareId))->Clone();
     } else {
 	//if(iShareId==-1) cout << "Creating new machine with no share-id" << endl;
 	//else cout << "Creating new machine with share-id " << iShareId << endl;
@@ -961,6 +963,7 @@ Mach *MachConfig::read_simple_machine (int iMachType, int iBlockSize, bool bMach
 	  break;
 	case file_header_mtype_tab:
 	    pNewMach = pMachTab = new MachTab(iInputDim, iOutputDim, iCurBlockSize, iNbForward, iNbBackward, iShareId);
+	    Mach::SetSharedMachine(iShareId, pNewMach);
 	  break;
 	case file_header_mtype_lin:
 	  pNewMach = pMachLin = new MachLin(iInputDim, iOutputDim, iCurBlockSize, iNbForward, iNbBackward, iShareId);
@@ -997,7 +1000,7 @@ Mach *MachConfig::read_simple_machine (int iMachType, int iBlockSize, bool bMach
 	  break;
 	}
 	if(iShareId != -1){
-	    prSharedMachines[iShareId] = pNewMach;
+	    Mach::SetSharedMachine(iShareId, pNewMach);
 	}
 	bNewShareId = true;
     }
