@@ -477,8 +477,8 @@ void Data::Preload()
       }
 
         // copy all factors sequentially in memory
-      REAL *adr_inp=mem_inp+idx*idim;
-      REAL *adr_trg=mem_trg+idx*odim;
+      REAL *adr_inp=mem_inp + (size_t) idx*idim;
+      REAL *adr_trg=mem_trg + (size_t) idx*odim;
       for (vector<DataFile*>::iterator it = (*itf).begin(); it!=(*itf).end(); ++it) {
         debug2("  load factor %ld to address %p\n", it-(*itf).begin(), adr_inp);
         memcpy(adr_inp, (*it)->input, idim1*sizeof(REAL));
@@ -522,7 +522,7 @@ void Data::Preload()
 #ifdef DEBUG
     printf("DUMP PRELOADED DATA at adr %p (%d examples of dim %d->%d):\n",mem_inp,idx,idim,odim);
     for (int e=0; e<idx; e++) {
-      for (int i=0; i<idim; i++) printf(" %5.2f",mem_inp[e*idim+i]); printf("\n");
+      for (int i=0; i<idim; i++) printf(" %5.2f",mem_inp[(size_t) e*idim+i]); printf("\n");
     }
 #endif
 
@@ -566,9 +566,9 @@ bool Data::Next()
 
   if (preload) {
       // just advance to next data in memory
-    input = &mem_inp[idx*idim];
+    input = &mem_inp[(size_t) idx*idim];
     aux = (input + (idim - auxdim));
-    if (odim>0) target = &mem_trg[idx*odim];
+    if (odim>0) target = &mem_trg[(size_t) idx*odim];
     current_df = mem_cdf[idx];
 
     // handling multiple languages
